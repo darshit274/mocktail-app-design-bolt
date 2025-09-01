@@ -9,6 +9,7 @@ import { store } from '@/store/store';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { notificationService } from '@/services/NotificationService';
+import TestNotificationIntegration from '@/services/TestNotificationIntegration';
 import { APP_CONFIG } from '@/config/constants';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 
@@ -25,6 +26,19 @@ function AppContent() {
           const initialized = await notificationService.initialize();
           if (initialized) {
             console.log('✅ Notification service initialized successfully');
+            
+            // Initialize test notification integration
+            try {
+              console.log('🧪 Initializing test notification integration...');
+              const testNotificationsReady = await TestNotificationIntegration.initialize();
+              if (testNotificationsReady) {
+                console.log('✅ Test notification integration initialized successfully');
+              } else {
+                console.warn('⚠️ Test notification integration initialization failed');
+              }
+            } catch (testNotificationError) {
+              console.error('❌ Error initializing test notifications:', testNotificationError);
+            }
           } else {
             console.warn('⚠️ Notification service initialization failed');
           }

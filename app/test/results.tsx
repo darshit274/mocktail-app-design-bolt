@@ -120,10 +120,12 @@ export default function TestResultsScreen() {
 
   const handleViewLeaderboard = () => {
     router.push({
-      pathname: '/test/leaderboard',
+      pathname: '/test/enhanced-leaderboard',
       params: {
-        testId: params.testId,
-        testType: params.testType,
+        type: 'test',
+        id: sessionId || resultId,
+        title: testTitle || categoryName || 'Test Results',
+        showTimeframe: 'true',
       },
     });
   };

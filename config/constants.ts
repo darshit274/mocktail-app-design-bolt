@@ -1,7 +1,8 @@
 // API Configuration
 export const API_CONFIG = {
   // BASE_URL:  'https://mocktaleacademy.com/backend',
-  BASE_URL:  'http://192.168.1.6:3000',
+  // BASE_URL:  'http://192.168.1.6:3000',
+  BASE_URL:  'http://localhost:3000',
   ENDPOINTS: {
     AUTH: {
       REGISTER: '/api/users/register',

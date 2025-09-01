@@ -10,6 +10,7 @@ import { quizApi } from './api/quizApi';
 import { notificationsApi } from './api/notificationsApi';
 import { userApi } from './api/userApi';
 import { dynamicHierarchyApi } from './api/dynamicHierarchyApi';
+import { testResponseApi } from './api/testResponseApi';
 
 export const store = configureStore({
   reducer: {
@@ -23,6 +24,7 @@ export const store = configureStore({
     [notificationsApi.reducerPath]: notificationsApi.reducer,
     [userApi.reducerPath]: userApi.reducer,
     [dynamicHierarchyApi.reducerPath]: dynamicHierarchyApi.reducer,
+    [testResponseApi.reducerPath]: testResponseApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -38,7 +40,8 @@ export const store = configureStore({
       quizApi.middleware,
       notificationsApi.middleware,
       userApi.middleware,
-      dynamicHierarchyApi.middleware
+      dynamicHierarchyApi.middleware,
+      testResponseApi.middleware
     ),
 });
 
