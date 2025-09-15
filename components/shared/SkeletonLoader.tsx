@@ -18,8 +18,8 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   style,
   children,
 }) => {
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -76,8 +76,8 @@ interface PDFCardSkeletonProps {
 }
 
 export const PDFCardSkeleton: React.FC<PDFCardSkeletonProps> = ({ style }) => {
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const styles = getStyles(Colors);
 
   return (

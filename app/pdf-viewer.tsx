@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, BookOpen, Shield } from 'lucide-react-native';
+import { ArrowLeft, BookOpen, Shield, Lock, ShoppingCart } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGetPDFByIdQuery } from '@/store/api/pdfApi';
+import { useCheckPDFAccessQuery } from '@/store/api/pdfPaymentApi';
 import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
 import { API_CONFIG } from '@/config/constants';
 import SecureBase64PDFViewer from '@/components/SecureBase64PDFViewer';
@@ -33,7 +34,19 @@ export default function PDFViewerScreen() {
     skip: !pdfId,
   });
 
+  // Check PDF access for premium PDFs
+  const {
+    data: accessData,
+    isLoading: checkingAccess,
+    error: accessError,
+  } = useCheckPDFAccessQuery(
+    { pdfId: pdfId! },
+    { skip: !pdfId || !pdfResponse?.data || pdfResponse.data.access_level === 'free' }
+  );
+
   const pdf = pdfResponse?.data;
+  const isPremium = pdf?.access_level === 'premium' && !pdf?.is_free;
+  const hasAccess = !isPremium || accessData?.data?.hasAccess || false;
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [isSecure, setIsSecure] = useState(true);
@@ -82,9 +95,25 @@ export default function PDFViewerScreen() {
     });
   };
 
+  const handlePurchase = () => {
+    if (!pdf) return;
+
+    router.push({
+      pathname: '/pdf-payment',
+      params: {
+        pdfId: pdf.id,
+        title: pdf.title,
+        price: pdf.price?.toString() || '0',
+        currency: pdf.currency || 'INR',
+        description: pdf.description,
+      },
+    });
+  };
+
   const styles = getStyles(Colors);
 
-  if (isLoading) {
+  // Show loading state
+  if (isLoading || (isPremium && checkingAccess)) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -143,6 +172,68 @@ export default function PDFViewerScreen() {
           >
             <Text style={styles.retryButtonText}>Go Back</Text>
           </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Check access for premium PDFs
+  if (isPremium && !hasAccess) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <ArrowLeft size={24} color={Colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Purchase Required</Text>
+          <View style={styles.placeholder} />
+        </View>
+
+        <View style={styles.accessDeniedContainer}>
+          <Lock size={64} color={Colors.warning} />
+          <Text style={styles.accessDeniedTitle}>Premium PDF</Text>
+          <Text style={styles.accessDeniedDescription}>
+            This PDF requires a purchase to view. Purchase now to get unlimited access.
+          </Text>
+
+          {/* PDF Info */}
+          <View style={styles.purchaseInfo}>
+            <Text style={styles.pdfTitle}>{pdf.title}</Text>
+            {pdf.description && (
+              <Text style={styles.pdfDescription}>{pdf.description}</Text>
+            )}
+            {pdf.price && (
+              <View style={styles.priceContainer}>
+                <Text style={styles.priceLabel}>Price:</Text>
+                <Text style={styles.priceValue}>
+                  {pdf.currency === 'INR' ? '₹' : '$'}{pdf.price.toFixed(2)}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.purchaseActions}>
+            <TouchableOpacity
+              style={styles.purchaseButton}
+              onPress={handlePurchase}
+            >
+              <ShoppingCart size={16} color={Colors.white} />
+              <Text style={styles.purchaseButtonText}>
+                Purchase PDF
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.goBackButton}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.goBackButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -355,6 +446,91 @@ const getStyles = (Colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: Colors.white,
+  },
+  accessDeniedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  accessDeniedTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.text,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  accessDeniedDescription: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 32,
+  },
+  purchaseInfo: {
+    width: '100%',
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 32,
+  },
+  pdfTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  pdfDescription: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  priceLabel: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  priceValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary,
+    marginLeft: 8,
+  },
+  purchaseActions: {
+    width: '100%',
+    gap: 12,
+  },
+  purchaseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.success,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  purchaseButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  goBackButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  goBackButtonText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
   },
   customLoadingContainer: {
     alignItems: 'center',

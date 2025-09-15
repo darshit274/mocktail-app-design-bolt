@@ -1,18 +1,36 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trophy, Medal, Award, TrendingUp, Calendar, ChevronLeft, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useGetTestSeriesLeaderboardWebQuery } from '@/store/api/webCompatibleApi';
 
 export default function TestLeaderboardScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState('This Test');
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
+  const params = useLocalSearchParams();
+  console.log('🏆 Leaderboard params:', params);
+
+  // Get the test series UUID from params (should come from navigation)
+  const testSeriesUuid = params.seriesUuid || params.categoryUuid || '4d7c05cd-f70e-4717-a631-5f1e85756a5c';
+  console.log('🏆 Using test series UUID for leaderboard:', testSeriesUuid);
+
+  // Fetch leaderboard using web-compatible API (EXACT SAME AS WEB)
+  const {
+    data: leaderboardResponse,
+    isLoading: loadingLeaderboard,
+    error: leaderboardError,
+    refetch: refetchLeaderboard
+  } = useGetTestSeriesLeaderboardWebQuery(
+    { testSeriesUuid: testSeriesUuid as string, limit: 20 },
+    { skip: !testSeriesUuid }
+  );
 
   const periods = [
     { key: 'This Test', label: t.leaderboard.periods.thisTest },
@@ -283,25 +301,50 @@ export default function TestLeaderboardScreen() {
         {/* Full Leaderboard */}
         <View style={styles.leaderboardContainer}>
           <Text style={styles.sectionTitle}>{t.leaderboard.allRankings}</Text>
-          {leaderboardData.map((user) => (
-            <View key={user.id} style={styles.leaderboardItem}>
-              <View style={styles.rankInfo}>
-                <View style={styles.rankBadge}>
-                  {getRankIcon(user.rank)}
-                </View>
-                <Image source={{ uri: user.avatar }} style={styles.userAvatar} />
-                <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{user.name}</Text>
-                  <Text style={styles.userStats}>
-                    {user.accuracy}% {t.leaderboard.accuracy} • {formatTime(user.timeTaken)}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.scoreInfo}>
-                <Text style={styles.userScore}>{user.score}%</Text>
-              </View>
+
+          {loadingLeaderboard ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>Loading leaderboard...</Text>
             </View>
-          ))}
+          ) : leaderboardError ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>Failed to load leaderboard</Text>
+              <TouchableOpacity onPress={refetchLeaderboard} style={styles.retryButton}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : leaderboardResponse?.success && leaderboardResponse.data?.length > 0 ? (
+            leaderboardResponse.data.map((user, index) => (
+              <View key={user.userId || index} style={styles.leaderboardItem}>
+                <View style={styles.rankInfo}>
+                  <View style={styles.rankBadge}>
+                    {getRankIcon(user.rank)}
+                  </View>
+                  {user.avatar ? (
+                    <Image source={{ uri: user.avatar }} style={styles.userAvatar} />
+                  ) : (
+                    <View style={[styles.userAvatar, { backgroundColor: Colors.primary }]}>
+                      <Text style={styles.avatarText}>{user.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  )}
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userName}>{user.name}</Text>
+                    <Text style={styles.userStats}>
+                      {user.percentage.toFixed(1)}% • {formatTime(user.timeTaken)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.scoreInfo}>
+                  <Text style={styles.userScore}>{user.totalScore}</Text>
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No leaderboard data available</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -545,5 +588,52 @@ const getStyles = (Colors: any) => StyleSheet.create({
     fontWeight: '500',
     color: Colors.textSubtle,
     marginLeft: 2,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginTop: 10,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  retryText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  avatarText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

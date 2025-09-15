@@ -1,8 +1,16 @@
+import { Platform } from 'react-native';
+
 // API Configuration
+const getBaseUrl = () => {
+  const baseUrl = Platform.OS === 'web'
+    ? 'http://localhost:3000'       // Use localhost for web
+    : 'http://192.168.1.3:3000';    // Use correct network IP for mobile (updated to match server)
+
+  return baseUrl;
+};
+
 export const API_CONFIG = {
-  // BASE_URL:  'https://mocktaleacademy.com/backend',
-  // BASE_URL:  'http://192.168.1.6:3000',
-  BASE_URL:  'http://localhost:3000',
+  BASE_URL: getBaseUrl(),
   ENDPOINTS: {
     AUTH: {
       REGISTER: '/api/users/register',

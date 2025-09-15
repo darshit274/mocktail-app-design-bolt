@@ -24,8 +24,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   showText = true,
   style,
 }) => {
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const { language, setLanguage, t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
 

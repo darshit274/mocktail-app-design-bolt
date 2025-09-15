@@ -14,8 +14,8 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const { t } = useLanguage();
   const dispatch = useDispatch();
   const [login, { isLoading }] = useLoginMutation();

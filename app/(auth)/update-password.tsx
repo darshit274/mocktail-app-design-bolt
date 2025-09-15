@@ -14,8 +14,8 @@ import { clearPendingVerification, setError } from '@/store/slices/authSlice';
 
 export default function UpdatePasswordScreen() {
   const [password, setPassword] = useState('');
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [updated, setUpdated] = useState(false);
 

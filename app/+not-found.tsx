@@ -5,9 +5,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function NotFoundScreen() {
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
   const styles = getStyles(Colors);
   return (
     <>

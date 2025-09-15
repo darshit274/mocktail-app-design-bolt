@@ -24,8 +24,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   subtitle,
   children
 }) => {
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const styles = getStyles(Colors);
 
   return (

@@ -27,9 +27,9 @@ import { useGetTestHistoryQuery } from '@/store/api/userApi';
 import { format } from 'date-fns';
 
 export default function TestHistoryScreen() {
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
   const styles = getStyles(Colors);
 
   const [page, setPage] = React.useState(1);

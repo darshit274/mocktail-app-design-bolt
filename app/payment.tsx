@@ -8,14 +8,26 @@ import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGetTestSeriesByIdQuery } from '@/store/api/testSeriesApi';
+import { useCreatePaymentOrderMutation, useVerifyPaymentMutation } from '@/store/api/paymentApi';
 import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
+import { WebView } from 'react-native-webview';
+import { Modal } from 'react-native';
+import { API_CONFIG } from '@/config/constants';
 
 export default function PaymentScreen() {
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
   const { seriesId } = useLocalSearchParams<{ seriesId: string }>();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('razorpay');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showPaymentWebView, setShowPaymentWebView] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState('');
+  const [currentSubscriptionId, setCurrentSubscriptionId] = useState<string | null>(null);
+
+  // Payment API hooks
+  const [createPaymentOrder] = useCreatePaymentOrderMutation();
+  const [verifyPayment] = useVerifyPaymentMutation();
 
   // Fetch test series data from API
   const { 
@@ -67,6 +79,77 @@ export default function PaymentScreen() {
     return features;
   };
 
+  // Helper function to create Razorpay hosted checkout URL
+  const createRazorpayPaymentURL = (orderData: any) => {
+    const baseURL = ( API_CONFIG.BASE_URL || 'http://localhost:3000')+'/api/payments/checkout';
+    const params = new URLSearchParams({
+      keyId: orderData.keyId,
+      amount: orderData.amount.toString(),
+      currency: orderData.currency,
+      name: 'MockTale',
+      description: `Payment for ${orderData.itemDetails.name}`,
+      itemName: orderData.itemDetails.name,
+      itemPrice: orderData.itemDetails.price.toString(),
+      subscriptionId: orderData.subscriptionId
+    });
+    
+    return `${baseURL}/${orderData.orderId}?${params.toString()}`;
+  };
+
+  // Handle payment verification
+  const handlePaymentVerification = async (paymentData: {
+    razorpay_payment_id: string;
+    razorpay_order_id: string;
+    razorpay_signature: string;
+  }) => {
+    if (!currentSubscriptionId) {
+      console.error('No subscription ID available for verification');
+      return;
+    }
+
+    try {
+      console.log('Verifying payment...', {
+        ...paymentData,
+        subscription_id: currentSubscriptionId
+      });
+
+      const verificationResult = await verifyPayment({
+        ...paymentData,
+        subscription_id: currentSubscriptionId
+      }).unwrap();
+
+      console.log('Payment verification successful:', verificationResult);
+
+      // Close WebView and show success
+      setShowPaymentWebView(false);
+
+      Alert.alert(
+        '🎉 Payment Successful!',
+        `Your payment has been verified successfully!\n\nPayment ID: ${verificationResult.data.paymentId}\nAmount: ₹${verificationResult.data.amount}`,
+        [
+          {
+            text: 'Continue',
+            onPress: () => {
+              // Navigate back to refresh the subscription status
+              router.back();
+            }
+          }
+        ]
+      );
+
+    } catch (verificationError: any) {
+      console.error('Payment verification failed:', verificationError);
+
+      setShowPaymentWebView(false);
+
+      Alert.alert(
+        'Verification Failed',
+        verificationError.data?.message || 'Payment was successful but verification failed. Please contact support if you were charged.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const paymentMethods = [
     {
       id: 'razorpay',
@@ -91,27 +174,140 @@ export default function PaymentScreen() {
     }
   ];
 
-  const handlePayment = () => {
-    if (!series) return;
+  const handlePayment = async () => {
+    if (!series || isProcessing) return;
     
-    // In real implementation, integrate with actual payment gateway
-    Alert.alert(
-      t.payment.gatewayIntegration,
-      t.payment.integrationMessage.replace('{method}', selectedPaymentMethod).replace('{amount}', `₹${series.price}`),
-      [
-        { text: t.common.cancel, style: 'cancel' },
-        { 
-          text: t.payment.simulateSuccess, 
-          onPress: () => {
-            Alert.alert(
-              t.payment.paymentSuccess,
-              t.payment.seriesAdded,
-              [{ text: t.common.ok, onPress: () => router.back() }]
-            );
-          }
+    setIsProcessing(true);
+    
+    try {
+      // Step 1: Create payment order
+      console.log('Creating payment order for series:', seriesId);
+      const orderResult = await createPaymentOrder({
+        testSeriesId: seriesId,
+        planType: 'test_series'
+      }).unwrap();
+
+      console.log('Payment order created:', orderResult);
+
+      // Store subscription ID for later verification
+      setCurrentSubscriptionId(orderResult.data.subscriptionId);
+
+      // Step 2: Create Razorpay payment URL for web-based checkout
+      const checkoutUrl = createRazorpayPaymentURL(orderResult.data);
+
+      console.log('Opening Razorpay in-app checkout:', checkoutUrl);
+
+      // Open the payment URL in WebView modal
+      setPaymentUrl(checkoutUrl);
+      setShowPaymentWebView(true);
+
+    } catch (orderError: any) {
+      console.error('Failed to create payment order:', orderError);
+      Alert.alert(
+        'Order Creation Failed',
+        orderError.data?.message || 'Failed to create payment order. Please try again.',
+        [{ text: t.common.ok || 'OK' }]
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle WebView navigation state changes to detect payment completion
+  const handleWebViewNavigationStateChange = async (navState: any) => {
+    const { url } = navState;
+    console.log('WebView navigation:', url);
+
+    // Check if the URL contains payment success parameters
+    if (url.includes('payment-success')) {
+      console.log('Payment completed successfully!');
+
+      // Extract payment parameters from URL
+      const urlParams = new URLSearchParams(url.split('?')[1] || '');
+      const paymentId = urlParams.get('payment_id');
+      const orderId = urlParams.get('order_id');
+      const signature = urlParams.get('signature');
+
+      if (paymentId && orderId && signature) {
+        await handlePaymentVerification({
+          razorpay_payment_id: paymentId,
+          razorpay_order_id: orderId,
+          razorpay_signature: signature,
+        });
+      } else {
+        // Fallback for older flow
+        setTimeout(() => {
+          setShowPaymentWebView(false);
+
+          Alert.alert(
+            '🎉 Payment Successful!',
+            'Your payment has been processed successfully. You now have access to this test series.',
+            [
+              {
+                text: 'Continue',
+                onPress: () => {
+                  router.back();
+                }
+              }
+            ]
+          );
+        }, 2000);
+      }
+    }
+    
+    // Check if the URL indicates payment failure
+    if (url.includes('payment-failed') || url.includes('error')) {
+      console.log('Payment failed');
+      setShowPaymentWebView(false);
+      
+      Alert.alert(
+        'Payment Failed',
+        'Payment could not be completed. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Handle messages from WebView (for more reliable communication)
+  const handleWebViewMessage = async (event: any) => {
+    try {
+      const message = JSON.parse(event.nativeEvent.data);
+      console.log('WebView message:', message);
+
+      if (message.type === 'PAYMENT_SUCCESS') {
+        console.log('Payment successful via message:', message.data);
+
+        // Extract payment details from message
+        const { payment_id, order_id, signature } = message.data;
+
+        if (payment_id && order_id && signature) {
+          // Use the payment verification flow
+          await handlePaymentVerification({
+            razorpay_payment_id: payment_id,
+            razorpay_order_id: order_id,
+            razorpay_signature: signature
+          });
+        } else {
+          // Fallback for incomplete data
+          setShowPaymentWebView(false);
+
+          Alert.alert(
+            '🎉 Payment Successful!',
+            `Your payment has been processed successfully!\n\nPayment ID: ${payment_id || 'N/A'}`,
+            [
+              {
+                text: 'Continue',
+                onPress: () => {
+                  router.back();
+                }
+              }
+            ]
+          );
         }
-      ]
-    );
+      }
+    } catch (error) {
+      console.log('Error parsing WebView message:', error);
+    }
   };
 
   const styles = getStyles(Colors);
@@ -131,7 +327,7 @@ export default function PaymentScreen() {
           <View style={styles.placeholder} />
         </View>
         
-        <View style={styles.loadingContainer}>
+        <View style={styles.skeletonLoadingContainer}>
           <SkeletonLoader height={200} style={{ margin: 20, borderRadius: 16 }} />
           <SkeletonLoader height={250} style={{ margin: 20, marginTop: 0, borderRadius: 16 }} />
           <SkeletonLoader height={300} style={{ margin: 20, marginTop: 0, borderRadius: 16 }} />
@@ -290,8 +486,9 @@ export default function PaymentScreen() {
         {/* Payment Button */}
         <View style={styles.paymentButtonContainer}>
           <TouchableOpacity
-            style={styles.paymentButton}
+            style={[styles.paymentButton, isProcessing && styles.paymentButtonDisabled]}
             onPress={handlePayment}
+            disabled={isProcessing}
           >
             <LinearGradient
               colors={[Colors.primary, Colors.primaryLight]}
@@ -299,9 +496,16 @@ export default function PaymentScreen() {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
-              <Text style={styles.paymentButtonText}>
-                {t.payment.payNow.replace('{amount}', `₹${series.price}`)}
-              </Text>
+              {isProcessing ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color={Colors.white} />
+                  <Text style={styles.paymentButtonText}>Processing...</Text>
+                </View>
+              ) : (
+                <Text style={styles.paymentButtonText}>
+                  {t.payment.payNow.replace('{amount}', `₹${series.price}`)}
+                </Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
           
@@ -310,6 +514,54 @@ export default function PaymentScreen() {
           </Text>
         </View>
         </ScrollView>
+
+        {/* Payment WebView Modal */}
+        <Modal
+          visible={showPaymentWebView}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <SafeAreaView style={styles.webViewContainer}>
+            <View style={styles.webViewHeader}>
+              <TouchableOpacity
+                style={styles.closeWebViewButton}
+                onPress={() => {
+                  setShowPaymentWebView(false);
+                  Alert.alert(
+                    'Payment Cancelled',
+                    'Payment was cancelled. You can try again anytime.',
+                    [{ text: t.common.ok || 'OK' }]
+                  );
+                }}
+              >
+                <Text style={styles.closeWebViewButtonText}>✕ Close</Text>
+              </TouchableOpacity>
+              <Text style={styles.webViewHeaderTitle}>Secure Payment</Text>
+              <View style={styles.placeholder} />
+            </View>
+            
+            {paymentUrl && (
+              <WebView
+                source={{ uri: paymentUrl }}
+                style={styles.webView}
+                onNavigationStateChange={handleWebViewNavigationStateChange}
+                onMessage={handleWebViewMessage}
+                startInLoadingState={true}
+                renderLoading={() => (
+                  <View style={styles.webViewLoading}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                    <Text style={styles.webViewLoadingText}>Loading secure payment...</Text>
+                  </View>
+                )}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                allowsInlineMediaPlayback={true}
+                mixedContentMode="compatibility"
+                allowsFullscreenVideo={true}
+              />
+            )}
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
   );
 }
@@ -553,6 +805,9 @@ const getStyles = (Colors: any) => StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 12,
   },
+  paymentButtonDisabled: {
+    opacity: 0.6,
+  },
   paymentGradient: {
     paddingVertical: 16,
     alignItems: 'center',
@@ -569,6 +824,11 @@ const getStyles = (Colors: any) => StyleSheet.create({
     lineHeight: 16,
   },
   loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  skeletonLoadingContainer: {
     flex: 1,
     padding: 20,
   },
@@ -594,5 +854,51 @@ const getStyles = (Colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.white,
+  },
+  webViewContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  webViewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: Colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.muted,
+  },
+  closeWebViewButton: {
+    padding: 8,
+  },
+  closeWebViewButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  webViewHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  webView: {
+    flex: 1,
+  },
+  webViewLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    zIndex: 999,
+  },
+  webViewLoadingText: {
+    fontSize: 16,
+    color: Colors.textSubtle,
+    marginTop: 16,
   },
 });

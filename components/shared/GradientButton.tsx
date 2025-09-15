@@ -21,8 +21,8 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
   style,
   gradientColors,
 }) => {
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const styles = getStyles(Colors);
 
   const defaultGradientColors = [Colors.primary, Colors.primaryLight];

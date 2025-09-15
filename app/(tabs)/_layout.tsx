@@ -5,20 +5,20 @@ import { Tabs } from 'expo-router';
 import { Chrome as Home, BookOpen, User, FileText, Play, Bell } from 'lucide-react-native';
 
 export default function TabLayout() {
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
   
   return (
     <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: Colors.textLink,
+          tabBarActiveTintColor: Colors.primary,
           tabBarInactiveTintColor: Colors.textSubtle,
           tabBarStyle: {
-            backgroundColor: Colors.background,
+            backgroundColor: Colors.cardBackground,
             borderTopWidth: 1,
-            borderTopColor: Colors.muted,
+            borderTopColor: Colors.border,
             paddingBottom: 5,
             paddingTop: 5,
             height: 60,

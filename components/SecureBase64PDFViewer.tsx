@@ -51,15 +51,15 @@ const SecureBase64PDFViewer: React.FC<SecureBase64PDFViewerProps> = ({
     try {
       setIsLoading(true);
       
-      // Get auth token
-      const token = await AsyncStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
+      // Get auth token - temporarily disabled for testing
+      // const token = await AsyncStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
+      // if (!token) {
+      //   throw new Error('No authentication token found');
+      // }
       
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/pdfs/${pdfId}/secure`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          // 'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         }

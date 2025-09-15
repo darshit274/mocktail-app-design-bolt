@@ -11,6 +11,9 @@ import { notificationsApi } from './api/notificationsApi';
 import { userApi } from './api/userApi';
 import { dynamicHierarchyApi } from './api/dynamicHierarchyApi';
 import { testResponseApi } from './api/testResponseApi';
+import { paymentApi } from './api/paymentApi';
+import { webCompatibleApi } from './api/webCompatibleApi';
+import { pdfPaymentApi } from './api/pdfPaymentApi';
 
 export const store = configureStore({
   reducer: {
@@ -25,6 +28,9 @@ export const store = configureStore({
     [userApi.reducerPath]: userApi.reducer,
     [dynamicHierarchyApi.reducerPath]: dynamicHierarchyApi.reducer,
     [testResponseApi.reducerPath]: testResponseApi.reducer,
+    [paymentApi.reducerPath]: paymentApi.reducer,
+    [webCompatibleApi.reducerPath]: webCompatibleApi.reducer,
+    [pdfPaymentApi.reducerPath]: pdfPaymentApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -32,7 +38,7 @@ export const store = configureStore({
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
     }).concat(
-      authApi.middleware, 
+      authApi.middleware,
       pdfApi.middleware,
       freeTestsApi.middleware,
       testSeriesApi.middleware,
@@ -41,7 +47,10 @@ export const store = configureStore({
       notificationsApi.middleware,
       userApi.middleware,
       dynamicHierarchyApi.middleware,
-      testResponseApi.middleware
+      testResponseApi.middleware,
+      paymentApi.middleware,
+      webCompatibleApi.middleware,
+      pdfPaymentApi.middleware
     ),
 });
 

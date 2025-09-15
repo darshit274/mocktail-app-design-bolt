@@ -18,9 +18,9 @@ import { AUTH_CONFIG } from '@/config/constants';
 
 export default function ProfileScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
-  const { isDarkMode, toggleTheme } = useTheme();
+  const { isDarkMode, theme, toggleTheme } = useTheme();
   const { t, language } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
   const dispatch = useDispatch();
   
   const { data: profileData, isLoading, error } = useGetProfileQuery();
@@ -80,13 +80,10 @@ export default function ProfileScreen() {
     },
     {
       id: 4,
-      title: t.profile.darkMode,
+      title: 'App Theme',
       icon: Moon,
-      route: '/theme',
-      description: 'Toggle dark mode',
-      hasSwitch: true,
-      switchValue: isDarkMode,
-      onSwitchChange: toggleTheme,
+      route: '/theme-selector',
+      description: 'Choose your preferred color scheme',
     },
     {
       id: 5,

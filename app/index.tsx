@@ -9,8 +9,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 
 export default function Index() {
   const router = useRouter();
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const { initializeAuthState } = useAuth();
   const [hasNavigated, setHasNavigated] = useState(false);

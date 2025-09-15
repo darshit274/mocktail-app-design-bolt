@@ -15,12 +15,12 @@ export default function TestResultsScreen() {
   console.log('📊 Results screen mounted');
   const params = useLocalSearchParams();
   console.log('📊 Received params:', params);
-  const { resultId, sessionId, score, percentage, passed, testTitle, correctAnswers, wrongAnswers, unanswered, categoryUuid, categoryName } = params;
+  const { resultId, sessionId, score, percentage, passed, testTitle, correctAnswers, wrongAnswers, unanswered, categoryUuid, categoryName, seriesUuid } = params;
   
   const [activeTab, setActiveTab] = useState<'overview' | 'analysis'>('overview');
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
   const styles = getStyles(Colors);
   
   // Early return if no params
@@ -39,17 +39,10 @@ export default function TestResultsScreen() {
   // Use passed parameters directly if available, otherwise fetch from API
   const hasDirectParams = correctAnswers && wrongAnswers && unanswered;
   
-  // Fetch detailed results from API only if we don't have direct params
-  const { 
-    data: reviewData, 
-    isLoading: loadingResults,
-    error: resultsError 
-  } = useReviewAnswersQuery({
-    session_id: sessionId as string,
-    result_id: resultId as string,
-  }, {
-    skip: !sessionId || !resultId || hasDirectParams,
-  });
+  // DISABLED: No need to fetch additional data - using passed parameters directly
+  const reviewData = null;
+  const loadingResults = false;
+  const resultsError = null;
 
   const results = reviewData?.data;
   const questions = results?.questions || [];
@@ -119,13 +112,14 @@ export default function TestResultsScreen() {
   };
 
   const handleViewLeaderboard = () => {
+    console.log('📊 Navigating to leaderboard with seriesUuid:', seriesUuid);
     router.push({
-      pathname: '/test/enhanced-leaderboard',
+      pathname: '/test/leaderboard',
       params: {
-        type: 'test',
-        id: sessionId || resultId,
-        title: testTitle || categoryName || 'Test Results',
-        showTimeframe: 'true',
+        seriesUuid: seriesUuid,
+        categoryUuid: categoryUuid,
+        categoryName: categoryName,
+        testTitle: testTitle,
       },
     });
   };

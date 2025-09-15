@@ -11,9 +11,9 @@ import { useGetFreeTestsQuery, useGetFreeTestCategoriesQuery, useGetFreeTestStat
 import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
 
 export default function FreeTestsScreen() {
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');

@@ -14,13 +14,14 @@ import {
 } from '@/store/api/dynamicHierarchyApi';
 import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
 import Toast from 'react-native-toast-message';
+import { useSubscriptionAccess, getSeriesButtonState } from '@/hooks/useSubscriptionAccess';
 
 export default function SeriesDetailScreen() {
   const { seriesUuid, title } = useLocalSearchParams<{ seriesUuid: string; title: string }>();
   
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
 
   // API calls using new dynamic hierarchy API
   const {
@@ -36,7 +37,31 @@ export default function SeriesDetailScreen() {
   const series = seriesData?.data;
   const categories = series?.categories || [];
 
+  // Get subscription access data for this series
+  const { accessData, loading: accessLoading, error: accessError } = useSubscriptionAccess(series?.id);
+  const buttonState = getSeriesButtonState(accessData);
+  const hasAccess = accessData?.hasAccess || false;
+
   const handleCategorySelect = (categoryUuid: string, categoryTitle: string) => {
+    // Check subscription access before allowing navigation
+    if (series.pricing_type === 'paid' && !hasAccess) {
+      Alert.alert(
+        'Subscription Required',
+        'This test series requires a subscription. Please purchase to access the content.',
+        [
+          {
+            text: 'View Plans',
+            onPress: handlePurchase
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ]
+      );
+      return;
+    }
+
     // Navigate to category detail to show proper hierarchy navigation
     router.push({
       pathname: '/test/category-detail',
@@ -50,6 +75,24 @@ export default function SeriesDetailScreen() {
 
   const handlePurchase = () => {
     if (!series) return;
+    
+    // Check if user already has access or payment is pending
+    if (!buttonState.showEnrollButton || buttonState.isDisabled) {
+      if (accessData?.hasPendingPayment) {
+        Toast.show({
+          type: 'info',
+          text1: 'Payment Pending',
+          text2: 'You have a recent pending payment for this series.',
+        });
+      } else if (hasAccess) {
+        Toast.show({
+          type: 'info',
+          text1: 'Already Enrolled',
+          text2: 'You already have access to this test series.',
+        });
+      }
+      return;
+    }
     
     router.push({
       pathname: '/payment',
@@ -251,10 +294,16 @@ export default function SeriesDetailScreen() {
 
           {/* Access Information */}
           <View style={styles.accessInfo}>
-            {series.is_subscribed || series.is_purchased ? (
+            {hasAccess ? (
               <View style={[styles.accessBadge, { backgroundColor: Colors.badgeSuccessBg }]}>
                 <Text style={[styles.accessText, { color: Colors.success }]}>
-                  ✓ You have access to this series
+                  ✓ {accessData?.accessType === 'free' ? 'Free access available' : 'You have access to this series'}
+                </Text>
+              </View>
+            ) : accessData?.hasPendingPayment ? (
+              <View style={[styles.accessBadge, { backgroundColor: Colors.badgeWarningBg }]}>
+                <Text style={[styles.accessText, { color: Colors.warning }]}>
+                  ⏳ Payment pending - please complete payment
                 </Text>
               </View>
             ) : (
@@ -284,7 +333,7 @@ export default function SeriesDetailScreen() {
             </View>
 
             <View style={styles.buttonContainer}>
-              {series.pricing_type === 'free' && !(series.is_subscribed || series.is_purchased) && (
+              {(accessData?.testSeries?.pricing_type === 'free' || series.pricing_type === 'free') && !hasAccess && (
                 <TouchableOpacity 
                   style={[styles.freeTestButton, { borderColor: Colors.primaryLight }]}
                   onPress={handleStartFreeTest}
@@ -296,7 +345,7 @@ export default function SeriesDetailScreen() {
                 </TouchableOpacity>
               )}
 
-              {series.is_subscribed || series.is_purchased ? (
+              {hasAccess ? (
                 <TouchableOpacity 
                   style={[styles.continueButton, { backgroundColor: Colors.success }]}
                   onPress={() => {
@@ -308,19 +357,43 @@ export default function SeriesDetailScreen() {
                   }}
                 >
                   <Text style={[styles.continueButtonText, { color: Colors.white }]}>
-                    Continue Learning
+                    {accessData?.accessType === 'free' ? 'Start Learning' : 'Continue Learning'}
                   </Text>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity 
-                  style={[styles.purchaseButton, { backgroundColor: Colors.primaryLight }]}
-                  onPress={handlePurchase}
-                >
-                  <Lock size={16} color={Colors.white} />
-                  <Text style={[styles.purchaseButtonText, { color: Colors.white }]}>
-                    Enroll Now
-                  </Text>
-                </TouchableOpacity>
+                <>
+                  {buttonState.showEnrollButton ? (
+                    <TouchableOpacity 
+                      style={[
+                        styles.purchaseButton, 
+                        { 
+                          backgroundColor: buttonState.isDisabled ? Colors.textSubtle : Colors.primaryLight,
+                          opacity: buttonState.isDisabled ? 0.7 : 1
+                        }
+                      ]}
+                      onPress={handlePurchase}
+                      disabled={buttonState.isDisabled}
+                    >
+                      {buttonState.buttonType === 'pending' ? (
+                        <Clock size={16} color={Colors.white} />
+                      ) : (
+                        <Lock size={16} color={Colors.white} />
+                      )}
+                      <Text style={[styles.purchaseButtonText, { color: Colors.white }]}>
+                        {buttonState.buttonText}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity 
+                      style={[styles.continueButton, { backgroundColor: Colors.success }]}
+                      onPress={handleStartFreeTest}
+                    >
+                      <Text style={[styles.continueButtonText, { color: Colors.white }]}>
+                        Start Learning
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
             </View>
           </View>

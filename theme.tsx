@@ -98,14 +98,184 @@ export const DarkTheme: ThemeColors = {
   progress: '#10B981',
 };
 
+// Theme Option 1: Rose & Emerald
+export const RoseEmeraldTheme: ThemeColors = {
+  white: '#FFFFFF',
+  black: '#000000',
+  gray400: '#9CA3AF',
+  blue500: '#3B82F6',
+  yellow600: '#D97706',
+  primary: '#E11D48',        // Rose-600
+  primaryLight: '#F43F5E',   // Rose-500
+  primaryExtraLight: '#FB7185', // Rose-400
+  accent: '#10B981',         // Emerald-500
+  background: '#FFF1F3',     // Rose-50
+  cardBackground: '#FFFFFF',
+  textPrimary: '#111827',
+  textSubtle: '#6B7280',
+  textLink: '#10B981',       // Emerald-500
+  success: '#10B981',
+  warning: '#F59E0B',
+  danger: '#DC2626',
+  muted: '#E5E7EB',
+  light: '#F3F4F6',
+  chip: '#FFE4E6',           // Rose-100
+  badgeSuccessBg: '#D1FAE5',
+  badgeDangerBg: '#FEE2E2',
+  shadow: '#000',
+  premiumBadge: '#FEF3C7',
+  premiumText: '#D97706',
+  skeletonBase: '#E5E7EB',
+  skeletonHighlight: '#F3F4F6',
+  border: '#E5E7EB',
+  error: '#DC2626',
+  progress: '#10B981',
+};
+
+// Theme Option 2: Blue & Orange
+export const BlueOrangeTheme: ThemeColors = {
+  white: '#FFFFFF',
+  black: '#000000',
+  gray400: '#9CA3AF',
+  blue500: '#3B82F6',
+  yellow600: '#D97706',
+  primary: '#2563EB',        // Blue-600
+  primaryLight: '#3B82F6',   // Blue-500
+  primaryExtraLight: '#60A5FA', // Blue-400
+  accent: '#F97316',         // Orange-500
+  background: '#EFF6FF',     // Blue-50
+  cardBackground: '#FFFFFF',
+  textPrimary: '#111827',
+  textSubtle: '#6B7280',
+  textLink: '#F97316',       // Orange-500
+  success: '#10B981',
+  warning: '#F59E0B',
+  danger: '#DC2626',
+  muted: '#E5E7EB',
+  light: '#F3F4F6',
+  chip: '#DBEAFE',           // Blue-100
+  badgeSuccessBg: '#D1FAE5',
+  badgeDangerBg: '#FEE2E2',
+  shadow: '#000',
+  premiumBadge: '#FEF3C7',
+  premiumText: '#D97706',
+  skeletonBase: '#E5E7EB',
+  skeletonHighlight: '#F3F4F6',
+  border: '#E5E7EB',
+  error: '#DC2626',
+  progress: '#10B981',
+};
+
+// Theme Option 3: Purple & Teal
+export const PurpleTealTheme: ThemeColors = {
+  white: '#FFFFFF',
+  black: '#000000',
+  gray400: '#9CA3AF',
+  blue500: '#3B82F6',
+  yellow600: '#D97706',
+  primary: '#7C3AED',        // Violet-600
+  primaryLight: '#8B5CF6',   // Violet-500
+  primaryExtraLight: '#A78BFA', // Violet-400
+  accent: '#14B8A6',         // Teal-500
+  background: '#FAF5FF',     // Violet-50
+  cardBackground: '#FFFFFF',
+  textPrimary: '#111827',
+  textSubtle: '#6B7280',
+  textLink: '#14B8A6',       // Teal-500
+  success: '#10B981',
+  warning: '#F59E0B',
+  danger: '#DC2626',
+  muted: '#E5E7EB',
+  light: '#F3F4F6',
+  chip: '#EDE9FE',           // Violet-100
+  badgeSuccessBg: '#D1FAE5',
+  badgeDangerBg: '#FEE2E2',
+  shadow: '#000',
+  premiumBadge: '#FEF3C7',
+  premiumText: '#D97706',
+  skeletonBase: '#E5E7EB',
+  skeletonHighlight: '#F3F4F6',
+  border: '#E5E7EB',
+  error: '#DC2626',
+  progress: '#10B981',
+};
+
 // Default export for backward compatibility
 export const Colors = LightTheme;
 
-export const getTheme = (isDarkMode: boolean): ThemeColors => {
+// Theme types for selection
+export type ThemeType = 'light' | 'dark' | 'rose-emerald' | 'blue-orange' | 'purple-teal';
+
+// Theme options for client selection
+export const ThemeOptions = [
+  {
+    id: 'light' as ThemeType,
+    name: 'Original Light',
+    description: 'Classic blue theme',
+    theme: LightTheme,
+    preview: {
+      primary: '#0A1F66',
+      accent: '#1D8A9E',
+      background: '#F9FAFB'
+    }
+  },
+  {
+    id: 'rose-emerald' as ThemeType,
+    name: 'Rose & Emerald',
+    description: 'Warm rose with fresh emerald',
+    theme: RoseEmeraldTheme,
+    preview: {
+      primary: '#E11D48',
+      accent: '#10B981',
+      background: '#FFF1F3'
+    }
+  },
+  {
+    id: 'blue-orange' as ThemeType,
+    name: 'Blue & Orange',
+    description: 'Professional blue with energetic orange',
+    theme: BlueOrangeTheme,
+    preview: {
+      primary: '#2563EB',
+      accent: '#F97316',
+      background: '#EFF6FF'
+    }
+  },
+  {
+    id: 'purple-teal' as ThemeType,
+    name: 'Purple & Teal',
+    description: 'Creative purple with calming teal',
+    theme: PurpleTealTheme,
+    preview: {
+      primary: '#7C3AED',
+      accent: '#14B8A6',
+      background: '#FAF5FF'
+    }
+  }
+];
+
+export const getTheme = (themeType: ThemeType = 'light'): ThemeColors => {
   try {
-    return isDarkMode ? DarkTheme : LightTheme;
+    switch (themeType) {
+      case 'dark':
+        return DarkTheme;
+      case 'rose-emerald':
+        return RoseEmeraldTheme;
+      case 'blue-orange':
+        return BlueOrangeTheme;
+      case 'purple-teal':
+        return PurpleTealTheme;
+      case 'light':
+      default:
+        return LightTheme;
+    }
   } catch (error) {
     console.warn('Theme initialization error, using fallback:', error);
     return LightTheme;
   }
+};
+
+// Legacy support for dark mode
+export const getThemeByDarkMode = (isDarkMode: boolean): ThemeColors => {
+  return isDarkMode ? DarkTheme : LightTheme;
 };

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Mocktale Academy",
+    "name": "MockTale Academy",
     "slug": "mocktale-academy",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -37,7 +37,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "d1180342-df97-40e7-a067-4c9f03364a82"
+        "projectId": "b409191a-7b93-41e2-b44f-6ccc10fe953d"
       }
     }
   }

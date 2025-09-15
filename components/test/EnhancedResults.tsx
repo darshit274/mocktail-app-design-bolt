@@ -20,9 +20,9 @@ export default function EnhancedResults() {
   
   const [showDetailedAnswers, setShowDetailedAnswers] = useState(false);
   
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
   const styles = getStyles(Colors);
   
   const { user } = useSelector((state: RootState) => state.auth);
@@ -61,7 +61,7 @@ export default function EnhancedResults() {
   const handleViewLeaderboard = () => {
     if (data?.data.session.test_id) {
       router.push({
-        pathname: '/test/enhanced-leaderboard',
+        pathname: '/test/leaderboard',
         params: {
           type: 'test',
           id: data.data.session.test_id,

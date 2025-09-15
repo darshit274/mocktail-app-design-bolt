@@ -1,13 +1,15 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Download, Eye, FileText, Calendar, Filter, Star, AlertCircle } from 'lucide-react-native';
+import { Search, Download, Eye, FileText, Calendar, Filter, Star, AlertCircle, ShoppingCart, Lock } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGetPDFsQuery, useGetPDFCategoriesQuery, useIncrementPDFViewMutation, PDFListParams } from '@/store/api/pdfApi';
 import { PDFListSkeleton, CategorySkeleton, SearchSkeleton } from '@/components/shared/SkeletonLoader';
+import PDFCard from '@/components/pdfs/PDFCard';
+import { API_CONFIG } from '@/config/constants';
 
 export default function PDFsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,9 +17,9 @@ export default function PDFsScreen() {
   const [currentPage, setCurrentPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
 
   // API queries
   const queryParams: PDFListParams = useMemo(() => ({
@@ -88,12 +90,26 @@ export default function PDFsScreen() {
       // Increment view count
       await incrementPDFView(pdfId);
       
-      // Navigate to PDF viewer
-      router.push(`/pdf-viewer?pdfId=${pdfId}`);
+      // Open PDF viewer directly from backend
+      const pdfViewerUrl = `${API_CONFIG.BASE_URL}/api/pdfs/${pdfId}/secure-view`;
+      
+      // For web, open in new tab
+      if (Platform.OS === 'web') {
+        window.open(pdfViewerUrl, '_blank');
+      } else {
+        // For mobile, navigate to a simple WebView wrapper
+        router.push(`/pdf-viewer?pdfId=${pdfId}&url=${encodeURIComponent(pdfViewerUrl)}`);
+      }
     } catch (error) {
       console.error('Error tracking PDF view:', error);
-      // Still navigate even if view tracking fails
-      router.push(`/pdf-viewer?pdfId=${pdfId}`);
+      // Still open PDF even if view tracking fails
+      const pdfViewerUrl = `${API_CONFIG.BASE_URL}/api/pdfs/${pdfId}/secure-view`;
+      
+      if (Platform.OS === 'web') {
+        window.open(pdfViewerUrl, '_blank');
+      } else {
+        router.push(`/pdf-viewer?pdfId=${pdfId}&url=${encodeURIComponent(pdfViewerUrl)}`);
+      }
     }
   }, [incrementPDFView]);
 
@@ -213,72 +229,13 @@ export default function PDFsScreen() {
           </View>
         ) : pdfData.length > 0 ? (
           pdfData.map((pdf) => (
-            <View key={pdf.id} style={styles.pdfCard}>
-            {/* Header */}
-            <View style={styles.pdfHeader}>
-              <View style={styles.pdfHeaderLeft}>
-                <View style={styles.pdfIconContainer}>
-                  <FileText size={24} color={Colors.primaryLight} />
-                </View>
-                <View style={styles.pdfInfo}>
-                  <Text style={styles.pdfTitle}>{pdf.title}</Text>
-                  <View style={styles.pdfMeta}>
-                    <Text style={styles.pdfSize}>{formatFileSize(pdf.file_size)}</Text>
-                    <Text style={styles.pdfSeparator}>•</Text>
-                    <Text style={styles.pdfPages}>{pdf.original_filename}</Text>
-                    {pdf.access_level === 'premium' && (
-                      <>
-                        <Text style={styles.pdfSeparator}>•</Text>
-                        <View style={styles.premiumBadge}>
-                          <Text style={styles.premiumText}>{t.pdfs?.premium || 'Premium'}</Text>
-                        </View>
-                      </>
-                    )}
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.ratingContainer}>
-                <Star size={14} color={Colors.warning} fill={Colors.warning} />
-                <Text style={styles.rating}>4.5</Text>
-              </View>
-            </View>
-
-            {/* Description */}
-            <Text style={styles.pdfDescription}>{pdf.description}</Text>
-
-            {/* Tags */}
-            <View style={styles.tagsContainer}>
-              {pdf.tags && pdf.tags.map((tag, index) => (
-                <View key={index} style={styles.tagChip}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Stats */}
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <Download size={14} color={Colors.textSubtle} />
-                <Text style={styles.statText}>{pdf.download_count} {t.pdfs?.downloads || 'downloads'}</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Calendar size={14} color={Colors.textSubtle} />
-                <Text style={styles.statText}>{formatDate(pdf.created_at)}</Text>
-              </View>
-            </View>
-
-            {/* Actions */}
-            <View style={styles.actionContainer}>
-              <TouchableOpacity 
-                style={styles.viewButton}
-                onPress={() => handlePreview(pdf.id)}
-              >
-                <Eye size={16} color={Colors.white} />
-                <Text style={styles.viewButtonText}>{t.pdfs?.view || 'View PDF'}</Text>
-              </TouchableOpacity>
-            </View>
-            </View>
+            <PDFCard
+              key={pdf.id}
+              pdf={pdf}
+              onPreview={handlePreview}
+              formatFileSize={formatFileSize}
+              formatDate={formatDate}
+            />
           ))
         ) : (
           <View style={styles.emptyState}>

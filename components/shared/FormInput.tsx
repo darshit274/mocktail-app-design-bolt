@@ -14,8 +14,8 @@ export const FormInput: React.FC<FormInputProps> = ({
   style,
   ...inputProps
 }) => {
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const styles = getStyles(Colors);
 
   return (

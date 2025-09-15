@@ -8,14 +8,15 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGetDynamicTestSeriesQuery, DynamicTestSeries, convertDynamicSeriesToOldFormat } from '@/store/api/dynamicHierarchyApi';
 import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
+import { useMultipleSubscriptionAccess, getSeriesButtonState } from '@/hooks/useSubscriptionAccess';
 
 export default function TestSeriesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
 
   // API calls using new dynamic hierarchy API
   const {
@@ -32,6 +33,10 @@ export default function TestSeriesScreen() {
   const testSeries = testSeriesResponse?.data || [];
   const pagination = testSeriesResponse?.pagination;
 
+  // Get subscription access data for all test series
+  const seriesIds = testSeries.map(series => series.id);
+  const { accessDataMap, loading: accessLoading } = useMultipleSubscriptionAccess(seriesIds);
+
   const handleTestSeriesSelect = (series: DynamicTestSeries) => {
     // Navigate to categories list for this test series using new dynamic structure
     router.push({
@@ -44,6 +49,14 @@ export default function TestSeriesScreen() {
   };
 
   const handlePurchase = (series: DynamicTestSeries) => {
+    const accessData = accessDataMap[series.id];
+    const buttonState = getSeriesButtonState(accessData);
+    
+    // Prevent purchase if already subscribed or payment is pending
+    if (!buttonState.showEnrollButton || buttonState.isDisabled) {
+      return;
+    }
+    
     router.push({
       pathname: '/payment',
       params: {
@@ -90,7 +103,12 @@ export default function TestSeriesScreen() {
     </View>
   );
 
-  const renderTestSeriesCard = (series: TestSeries, index: number) => (
+  const renderTestSeriesCard = (series: DynamicTestSeries, index: number) => {
+    const accessData = accessDataMap[series.id];
+    const buttonState = getSeriesButtonState(accessData);
+    const hasAccess = accessData?.hasAccess || false;
+
+    return (
     <TouchableOpacity
       key={series.id}
       style={styles.seriesCard}
@@ -106,10 +124,18 @@ export default function TestSeriesScreen() {
             <Text style={styles.studentsCount}>({series.purchase_count || 0} students)</Text>
           </View>
         </View>
-        {series.is_purchased && (
+        {hasAccess && (
           <View style={styles.purchasedBadge}>
             <CheckCircle size={16} color={Colors.success} />
-            <Text style={styles.purchasedText}>Enrolled</Text>
+            <Text style={styles.purchasedText}>
+              {accessData?.accessType === 'free' ? 'Free Access' : 'Enrolled'}
+            </Text>
+          </View>
+        )}
+        {accessData?.hasPendingPayment && (
+          <View style={[styles.purchasedBadge, { backgroundColor: Colors.warning + '20' }]}>
+            <Clock size={16} color={Colors.warning} />
+            <Text style={[styles.purchasedText, { color: Colors.warning }]}>Pending Payment</Text>
           </View>
         )}
       </View>
@@ -152,7 +178,7 @@ export default function TestSeriesScreen() {
         </View>
         
         <View style={styles.buttonContainer}>
-          {(series.demo_tests_count || series.free_tests || 0) > 0 && !series.is_purchased && (
+          {(series.demo_tests_count || series.free_tests || 0) > 0 && !hasAccess && (
             <TouchableOpacity 
               style={styles.freeTestButton}
               onPress={() => handleStartTest(series)}
@@ -161,26 +187,50 @@ export default function TestSeriesScreen() {
             </TouchableOpacity>
           )}
           
-          {series.is_purchased ? (
+          {hasAccess ? (
             <TouchableOpacity 
               style={styles.startButton}
               onPress={() => handleTestSeriesSelect(series)}
             >
-              <Text style={styles.startButtonText}>Continue</Text>
+              <Text style={styles.startButtonText}>
+                {buttonState.buttonText === 'Start Free' ? 'Start Free' : 'Continue'}
+              </Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity 
-              style={styles.purchaseButton}
-              onPress={() => handlePurchase(series)}
-            >
-              <Lock size={16} color={Colors.white} />
-              <Text style={styles.purchaseButtonText}>Enroll Now</Text>
-            </TouchableOpacity>
+            <>
+              {buttonState.showEnrollButton ? (
+                <TouchableOpacity 
+                  style={[
+                    styles.purchaseButton,
+                    buttonState.isDisabled && { opacity: 0.5 }
+                  ]}
+                  onPress={() => handlePurchase(series)}
+                  disabled={buttonState.isDisabled}
+                >
+                  {buttonState.buttonType === 'pending' ? (
+                    <Clock size={16} color={Colors.white} />
+                  ) : (
+                    <Lock size={16} color={Colors.white} />
+                  )}
+                  <Text style={styles.purchaseButtonText}>
+                    {buttonState.buttonText}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity 
+                  style={styles.startButton}
+                  onPress={() => handleTestSeriesSelect(series)}
+                >
+                  <Text style={styles.startButtonText}>Start Free</Text>
+                </TouchableOpacity>
+              )}
+            </>
           )}
         </View>
       </View>
     </TouchableOpacity>
   );
+  };
 
   const styles = getStyles(Colors);
 

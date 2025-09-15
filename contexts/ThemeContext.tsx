@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemeType } from '@/theme';
 
-type ThemeMode = 'light' | 'dark';
+type ThemeMode = 'light' | 'dark'; // Keep for backward compatibility
 
 interface ThemeContextType {
   isDarkMode: boolean;
   themeMode: ThemeMode;
+  theme: ThemeType;
   toggleTheme: () => void;
-  setTheme: (mode: ThemeMode) => void;
+  setTheme: (mode: ThemeMode | ThemeType) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -19,8 +21,11 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [themeMode, setThemeMode] = useState<ThemeMode>('light');
-  const isDarkMode = themeMode === 'dark';
+  const [theme, setThemeState] = useState<ThemeType>('light');
+  
+  // Backward compatibility
+  const themeMode: ThemeMode = theme === 'dark' ? 'dark' : 'light';
+  const isDarkMode = theme === 'dark';
 
   useEffect(() => {
     loadTheme();
@@ -29,15 +34,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const loadTheme = async () => {
     try {
       const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-      if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
-        setThemeMode(savedTheme);
+      if (savedTheme) {
+        setThemeState(savedTheme as ThemeType);
       }
     } catch (error) {
       console.error('Error loading theme:', error);
     }
   };
 
-  const saveTheme = async (mode: ThemeMode) => {
+  const saveTheme = async (mode: ThemeType) => {
     try {
       await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
     } catch (error) {
@@ -46,19 +51,20 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   };
 
   const toggleTheme = () => {
-    const newMode = themeMode === 'light' ? 'dark' : 'light';
-    setThemeMode(newMode);
+    const newMode = theme === 'dark' ? 'light' : 'dark';
+    setThemeState(newMode);
     saveTheme(newMode);
   };
 
-  const setTheme = (mode: ThemeMode) => {
-    setThemeMode(mode);
-    saveTheme(mode);
+  const setTheme = (mode: ThemeMode | ThemeType) => {
+    setThemeState(mode as ThemeType);
+    saveTheme(mode as ThemeType);
   };
 
   const value: ThemeContextType = {
     isDarkMode,
     themeMode,
+    theme,
     toggleTheme,
     setTheme,
   };
@@ -78,6 +84,7 @@ export const useTheme = (): ThemeContextType => {
     return {
       isDarkMode: false,
       themeMode: 'light',
+      theme: 'light',
       toggleTheme: () => {},
       setTheme: () => {},
     };

@@ -14,6 +14,7 @@ import { ArrowLeft, Folder, FileText, Play } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 
 import { useGetDynamicCategoryByUuidQuery } from '@/store/api/dynamicHierarchyApi';
+import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -27,8 +28,8 @@ export default function CategoryDetailScreen() {
 
   const [language, setLanguage] = useState<'english' | 'gujarati'>('english');
 
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const styles = getStyles(Colors);
 
   const {
@@ -37,6 +38,14 @@ export default function CategoryDetailScreen() {
     error,
     refetch,
   } = useGetDynamicCategoryByUuidQuery(params.categoryUuid);
+
+  // Get subscription access for the test series
+  const {
+    accessData,
+    loading: checkingAccess
+  } = useSubscriptionAccess(params.seriesUuid);
+
+  const hasSeriesAccess = accessData?.hasAccess || false;
 
   if (isLoading) {
     return (
@@ -78,6 +87,28 @@ export default function CategoryDetailScreen() {
   const { category, content_type, content, breadcrumb, statistics } = categoryData.data;
 
   const handleSubcategoryPress = (subcategory: any) => {
+    // Check subscription access before allowing navigation
+    if (categoryData?.data?.category?.testSeries?.pricing_type === 'paid' && !hasSeriesAccess) {
+      Alert.alert(
+        'Subscription Required',
+        'This test requires a subscription. Please purchase the test series to access this content.',
+        [
+          {
+            text: 'View Plans',
+            onPress: () => router.push({
+              pathname: '/test/series-detail',
+              params: { seriesId: params.seriesUuid }
+            })
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ]
+      );
+      return;
+    }
+
     router.push({
       pathname: '/test/category-detail',
       params: {
@@ -89,24 +120,60 @@ export default function CategoryDetailScreen() {
   };
 
   const handleStartQuiz = () => {
-    // Only allow quiz if this specific category has direct questions
-    if (content_type === 'questions' && Array.isArray(content) && content.length > 0) {
-      router.push({
-        pathname: '/test/quiz',
-        params: {
-          categoryUuid: params.categoryUuid,
-          categoryName: params.categoryName,
-          seriesUuid: params.seriesUuid,
-          language,
-        },
-      });
-    } else {
+    console.log('🎯 Start Quiz button pressed');
+    console.log('📊 State check:', {
+      content_type,
+      contentLength: Array.isArray(content) ? content.length : 'not array',
+      pricing_type: categoryData?.data?.category?.testSeries?.pricing_type,
+      hasSeriesAccess,
+      checkingAccess
+    });
+
+    // Check if category has questions first
+    if (!(content_type === 'questions' && Array.isArray(content) && content.length > 0)) {
+      console.log('❌ No questions available');
       Toast.show({
         type: 'error',
         text1: 'No Questions at This Level',
         text2: 'Please navigate through subcategories to find questions.',
       });
+      return;
     }
+
+    // Check if this is a paid series and user has access
+    if (categoryData?.data?.category?.testSeries?.pricing_type === 'paid' && !hasSeriesAccess) {
+      console.log('❌ Subscription required');
+      Alert.alert(
+        'Subscription Required',
+        'This test requires a subscription. Please purchase the test series to access this content.',
+        [
+          {
+            text: 'View Plans',
+            onPress: () => router.push({
+              pathname: '/test/series-detail',
+              params: { seriesId: params.seriesUuid }
+            })
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ]
+      );
+      return;
+    }
+
+    // All checks passed, navigate to quiz
+    console.log('✅ All checks passed, navigating to quiz');
+    router.push({
+      pathname: '/test/quiz',
+      params: {
+        categoryUuid: params.categoryUuid,
+        categoryName: params.categoryName,
+        seriesUuid: params.seriesUuid,
+        language,
+      },
+    });
   };
 
   const renderBreadcrumb = () => (

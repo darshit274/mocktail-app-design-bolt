@@ -56,8 +56,8 @@ export default function EnhancedQuizComponent() {
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   
   // Theme and language
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const { t } = useLanguage();
   const styles = getStyles(Colors);
   

@@ -48,9 +48,9 @@ interface ProfileFormData {
 }
 
 export default function AccountSettingsScreen() {
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useLanguage();
-  const Colors = getTheme(isDarkMode);
+  const Colors = getTheme(theme);
   const styles = getStyles(Colors);
   
   const user = useSelector((state: RootState) => state.auth.user);

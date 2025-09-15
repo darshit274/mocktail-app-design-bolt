@@ -52,8 +52,8 @@ export default function SolutionsScreen() {
   const isCategoryQuiz = sessionId === 'category-quiz' && categoryUuid;
   
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const styles = getStyles(Colors);
   const { t } = useLanguage();
   

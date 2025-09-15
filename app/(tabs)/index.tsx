@@ -10,8 +10,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useGetProfileQuery } from '@/store/api/userApi';
 
 export default function HomeScreen() {
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const { t } = useLanguage();
   const { data: profileData } = useGetProfileQuery();
   const userProfile = profileData?.data;

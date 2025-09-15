@@ -22,8 +22,8 @@ import {
 import Toast from 'react-native-toast-message';
 
 export default function NotificationsScreen() {
-  const { isDarkMode } = useTheme();
-  const Colors = getTheme(isDarkMode);
+  const { theme } = useTheme();
+  const Colors = getTheme(theme);
   const { t } = useLanguage();
   const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
