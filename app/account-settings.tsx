@@ -31,9 +31,10 @@ import { router } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi';
+import { setCredentials } from '@/store/slices/authSlice';
 import Toast from 'react-native-toast-message';
 
 interface ProfileFormData {
@@ -52,8 +53,10 @@ export default function AccountSettingsScreen() {
   const { t } = useLanguage();
   const Colors = getTheme(theme);
   const styles = getStyles(Colors);
-  
+  const dispatch = useDispatch();
+
   const user = useSelector((state: RootState) => state.auth.user);
+  const token = useSelector((state: RootState) => state.auth.token);
   const { data: profileData, isLoading: loadingProfile } = useGetProfileQuery();
   const [updateProfile, { isLoading: updating }] = useUpdateProfileMutation();
 
@@ -157,7 +160,7 @@ export default function AccountSettingsScreen() {
           allowsEditing: true,
           aspect: [1, 1],
           quality: 0.5,
-          base64: false,
+          base64: true, // Enable base64 for consistency
         });
 
         if (!result.canceled && result.assets && result.assets[0]) {
@@ -192,10 +195,11 @@ export default function AccountSettingsScreen() {
           allowsEditing: true,
           aspect: [1, 1],
           quality: 0.5,
-          base64: false,
+          base64: true, // Enable base64 for consistency
         });
 
         if (!result.canceled && result.assets && result.assets[0]) {
+          // For mobile, we'll use the URI which will be converted to base64 by the API layer
           setImageUri(result.assets[0].uri);
           setHasChanges(true);
         }
@@ -228,33 +232,34 @@ export default function AccountSettingsScreen() {
       if (imageUri && imageUri !== formData.avatarUrl) {
         console.log('Image changed - Current URI:', imageUri);
         console.log('Previous Avatar URL:', formData.avatarUrl);
-        
-        if (Platform.OS === 'web' && (imageUri.startsWith('blob:') || imageUri.startsWith('data:'))) {
-          // For web, convert to blob if needed
-          const response = await fetch(imageUri);
-          const blob = await response.blob();
-          updateData.avatar = blob;
-          console.log('Web: Created blob, size:', blob.size, 'type:', blob.type);
-        } else {
-          // For mobile, just pass the URI
-          updateData.avatar = imageUri;
-          console.log('Mobile: Using URI directly');
-        }
+
+        // Both web and mobile now use the same approach - pass the URI/blob
+        // The API layer will handle base64 conversion
+        updateData.avatar = imageUri;
+        console.log('Added avatar to update data');
       }
 
       const result = await updateProfile(updateData).unwrap();
-      
+
       // Update the local image URI if the update was successful
       if (result.data?.avatarUrl) {
         setImageUri(result.data.avatarUrl);
       }
-      
+
+      // Update Redux state with the new profile data
+      if (token) {
+        dispatch(setCredentials({
+          user: result.data,
+          token: token
+        }));
+      }
+
       Toast.show({
         type: 'success',
         text1: 'Profile Updated',
         text2: 'Your profile has been updated successfully',
       });
-      
+
       setHasChanges(false);
       router.back();
     } catch (error) {

@@ -74,7 +74,10 @@ export const userApi = createApi({
   endpoints: (builder) => ({
     // Get user profile
     getProfile: builder.query<{ success: boolean; data: UserProfile }, void>({
-      query: () => '/profile/profile',
+      query: () => ({
+        url: '/profile/profile',
+        method: 'GET',
+      }),
       providesTags: ['Profile'],
     }),
 
@@ -83,36 +86,68 @@ export const userApi = createApi({
       { success: boolean; message: string; data: UserProfile },
       Partial<UserProfile> & { avatar?: string | Blob }
     >({
-      query: (profileData) => {
-        const formData = new FormData();
-        
-        // Add text fields
-        Object.entries(profileData).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && key !== 'avatar') {
-            formData.append(key, value.toString());
-          }
-        });
-        
-        // Add avatar if provided
+      queryFn: async (profileData, api, extraOptions, baseQuery) => {
+        const updatePayload: any = {
+          fullName: profileData.fullName,
+          email: profileData.email,
+          phoneNumber: profileData.phoneNumber || '',
+          dateOfBirth: profileData.dateOfBirth || null,
+          schoolName: profileData.schoolName || '',
+          city: profileData.city || '',
+          state: profileData.state || '',
+        };
+
+        // Handle avatar upload - convert to base64 like web app
         if (profileData.avatar) {
-          if (profileData.avatar instanceof Blob) {
-            // For web when we pass a blob
-            formData.append('avatar', profileData.avatar, 'avatar.jpg');
-          } else {
-            // For mobile, send as file
-            formData.append('avatar', {
-              uri: profileData.avatar,
-              type: 'image/jpeg',
-              name: 'avatar.jpg',
-            } as any);
+          try {
+            let base64String: string;
+
+            if (profileData.avatar instanceof Blob) {
+              // For web - convert blob to base64
+              const reader = new FileReader();
+              const base64Promise = new Promise<string>((resolve, reject) => {
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+              });
+              reader.readAsDataURL(profileData.avatar);
+              base64String = await base64Promise;
+            } else if (typeof profileData.avatar === 'string') {
+              // For mobile - convert URI to base64
+              if (profileData.avatar.startsWith('data:')) {
+                // Already base64
+                base64String = profileData.avatar;
+              } else {
+                // Convert file URI to base64
+                const response = await fetch(profileData.avatar);
+                const blob = await response.blob();
+                const reader = new FileReader();
+                const base64Promise = new Promise<string>((resolve, reject) => {
+                  reader.onloadend = () => resolve(reader.result as string);
+                  reader.onerror = reject;
+                });
+                reader.readAsDataURL(blob);
+                base64String = await base64Promise;
+              }
+            } else {
+              throw new Error('Unsupported avatar format');
+            }
+
+            updatePayload.avatarBase64 = base64String;
+            console.log('Avatar converted to base64, length:', base64String.length);
+          } catch (error) {
+            console.error('Failed to convert avatar to base64:', error);
+            return { error: { status: 'CUSTOM_ERROR', data: 'Failed to process avatar image' } };
           }
         }
-        
-        return {
+
+        console.log('Sending JSON update with payload keys:', Object.keys(updatePayload));
+
+        // Use the baseQuery to make the actual request
+        return baseQuery({
           url: '/profile/profile',
           method: 'PUT',
-          body: formData,
-        };
+          body: updatePayload,
+        });
       },
       invalidatesTags: ['Profile'],
     }),
@@ -145,7 +180,10 @@ export const userApi = createApi({
       { success: boolean; data: Subscription[] },
       void
     >({
-      query: () => '/profile/profile/subscriptions',
+      query: () => ({
+        url: '/profile/profile/subscriptions',
+        method: 'GET',
+      }),
       providesTags: ['Subscriptions'],
     }),
   }),

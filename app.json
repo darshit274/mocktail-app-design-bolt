@@ -29,7 +29,17 @@
       "expo-font",
       "expo-web-browser",
       "expo-camera",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "buildFeatures": {
+              "prefab": true
+            }
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -37,7 +47,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "b409191a-7b93-41e2-b44f-6ccc10fe953d"
+        "projectId": "cd54b2fc-1af8-4a1f-bf3e-12449e804a92"
       }
     }
   }
