@@ -141,20 +141,25 @@ export default function WebQuizScreen() {
       const webApiAnswers = questions.map((question) => {
         const selectedAnswer = selectedAnswers[question.id];
         const correctAnswer = question.correct_answer;
+        const isMarkedForReview = flaggedQuestions.has(question.id.toString());
 
         return {
           questionId: question.id,
           selectedOption: selectedAnswer || null,
           isCorrect: selectedAnswer === correctAnswer,
-          timeSpent: 30
+          timeSpent: 30,
+          isMarkedForReview: isMarkedForReview
         };
       });
+
+      const markedForReviewCount = flaggedQuestions.size;
 
       console.log('🌐 Submitting with params:', {
         userId: user.uuid,
         testSeriesId: seriesUuid,
         answersCount: webApiAnswers.length,
-        totalTimeSpent: 3600 - timeRemaining
+        totalTimeSpent: 3600 - timeRemaining,
+        markedForReviewCount: markedForReviewCount
       });
 
       // Submit using WEB API
@@ -162,7 +167,8 @@ export default function WebQuizScreen() {
         userId: user.uuid,
         testSeriesId: seriesUuid as string,
         answers: webApiAnswers,
-        totalTimeSpent: 3600 - timeRemaining
+        totalTimeSpent: 3600 - timeRemaining,
+        markedForReviewCount: markedForReviewCount
       }).unwrap();
 
       console.log('✅ Web Quiz submission successful:', result.data);

@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 const getBaseUrl = () => {
   // const baseUrl = 'http://192.168.1.3:3000';    // Use correct network IP for mobile (updated to match server)
   const baseUrl = 'https://mocktaleacademy.com/backend';    // Use correct network IP for mobile (updated to match server)
+  // const baseUrl = 'http://localhost:3000';    // Use correct network IP for mobile (updated to match server)
 
   return baseUrl;
 };

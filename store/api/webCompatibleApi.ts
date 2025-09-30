@@ -13,8 +13,10 @@ export interface WebQuizSubmissionRequest {
     selectedOption: 'A' | 'B' | 'C' | 'D' | null;
     isCorrect: boolean;
     timeSpent?: number;
+    isMarkedForReview?: boolean;
   }>;
   totalTimeSpent?: number;
+  markedForReviewCount?: number;
 }
 
 export interface WebQuizSubmissionResponse {

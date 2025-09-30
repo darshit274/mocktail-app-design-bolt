@@ -7,7 +7,6 @@
     "icon": "./assets/images/MockTale.jpg",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mocktale.mocktaleacademy"
@@ -19,11 +18,6 @@
         "android.permission.RECORD_AUDIO"
       ]
     },
-    "web": {
-      "bundler": "metro",
-      "output": "single",
-      "favicon": "./assets/images/MockTale.jpg"
-    },
     "plugins": [
       "expo-router",
       "expo-font",
@@ -34,6 +28,7 @@
         "expo-build-properties",
         {
           "android": {
+            "newArchEnabled": true,
             "buildFeatures": {
               "prefab": true
             }
@@ -47,7 +42,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "cd54b2fc-1af8-4a1f-bf3e-12449e804a92"
+        "projectId": "66f2ec8b-bbe6-4f50-bc06-e1a6bd4e8316"
       }
     }
   }

@@ -379,11 +379,62 @@ export default function EnhancedQuizComponent() {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // =====================
+  // SMART LANGUAGE SELECTION FUNCTIONS
+  // =====================
+
+  const getQuestionText = (question: DynamicQuestion, selectedLang: string): string => {
+    if (selectedLang === 'Gujarati') {
+      return question.question_text_gujarati || question.question_text || 'No question available';
+    } else {
+      return question.question_text || question.question_text_gujarati || 'No question available';
+    }
+  };
+
+  const getOptionText = (question: DynamicQuestion, option: "A" | "B" | "C" | "D", selectedLang: string): string => {
+    const optionLower = option.toLowerCase() as 'a' | 'b' | 'c' | 'd';
+    const englishKey = `option_${optionLower}` as keyof DynamicQuestion;
+    const gujaratiKey = `option_${optionLower}_gujarati` as keyof DynamicQuestion;
+
+    if (selectedLang === 'Gujarati') {
+      return (question[gujaratiKey] as string) || (question[englishKey] as string) || question.options?.[option] || `No option ${option}`;
+    } else {
+      return (question[englishKey] as string) || (question[gujaratiKey] as string) || question.options?.[option] || `No option ${option}`;
+    }
+  };
+
+  const getLanguageIndicator = (question: DynamicQuestion, selectedLang: string, field: 'question' | 'option', option?: "A" | "B" | "C" | "D"): string => {
+    if (field === 'question') {
+      const hasEnglish = question.question_text && question.question_text.trim() !== '';
+      const hasGujarati = question.question_text_gujarati && question.question_text_gujarati.trim() !== '';
+
+      if (selectedLang === 'Gujarati') {
+        return hasGujarati ? 'GU' : hasEnglish ? 'EN' : '';
+      } else {
+        return hasEnglish ? 'EN' : hasGujarati ? 'GU' : '';
+      }
+    } else if (field === 'option' && option) {
+      const optionLower = option.toLowerCase() as 'a' | 'b' | 'c' | 'd';
+      const englishKey = `option_${optionLower}` as keyof DynamicQuestion;
+      const gujaratiKey = `option_${optionLower}_gujarati` as keyof DynamicQuestion;
+
+      const hasEnglish = question[englishKey] && (question[englishKey] as string).trim() !== '';
+      const hasGujarati = question[gujaratiKey] && (question[gujaratiKey] as string).trim() !== '';
+
+      if (selectedLang === 'Gujarati') {
+        return hasGujarati ? 'GU' : hasEnglish ? 'EN' : '';
+      } else {
+        return hasEnglish ? 'EN' : hasGujarati ? 'GU' : '';
+      }
+    }
+    return '';
   };
 
   const getQuestionStatus = (questionId: number) => {
@@ -458,6 +509,16 @@ export default function EnhancedQuizComponent() {
         </View>
 
         <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.languageButton}
+            onPress={() => setSelectedLanguage(selectedLanguage === 'English' ? 'Gujarati' : 'English')}
+          >
+            <Globe size={16} color={Colors.text} />
+            <Text style={styles.languageButtonText}>
+              {selectedLanguage === 'English' ? 'EN' : 'GU'}
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.timerButton}>
             <Clock size={16} color={timeRemaining < 300 ? Colors.error : Colors.text} />
             <Text style={[styles.timerText, timeRemaining < 300 && styles.timerWarning]}>
@@ -509,11 +570,18 @@ export default function EnhancedQuizComponent() {
             </View>
 
             <View style={styles.questionContainer}>
-              <Text style={styles.questionText}>
-                {selectedLanguage === 'Gujarati' && currentQ.question_text_gujarati 
-                  ? currentQ.question_text_gujarati 
-                  : currentQ.question_text}
-              </Text>
+              <View style={styles.questionWithIndicator}>
+                <Text style={styles.questionText}>
+                  {getQuestionText(currentQ, selectedLanguage)}
+                </Text>
+                {getLanguageIndicator(currentQ, selectedLanguage, 'question') && (
+                  <View style={styles.languageIndicator}>
+                    <Text style={styles.languageIndicatorText}>
+                      {getLanguageIndicator(currentQ, selectedLanguage, 'question')}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
 
             <View style={styles.optionsContainer}>
@@ -538,14 +606,21 @@ export default function EnhancedQuizComponent() {
                         {option}
                       </Text>
                     </View>
-                    <Text style={[
-                      styles.optionText,
-                      currentState?.selectedOption === option && styles.selectedOptionText
-                    ]}>
-                      {selectedLanguage === 'Gujarati' && currentQ.options_gujarati 
-                        ? currentQ.options_gujarati[option as keyof typeof currentQ.options_gujarati]
-                        : currentQ.options[option as keyof typeof currentQ.options]}
-                    </Text>
+                    <View style={styles.optionTextContainer}>
+                      <Text style={[
+                        styles.optionText,
+                        currentState?.selectedOption === option && styles.selectedOptionText
+                      ]}>
+                        {getOptionText(currentQ, option as "A" | "B" | "C" | "D", selectedLanguage)}
+                      </Text>
+                      {getLanguageIndicator(currentQ, selectedLanguage, 'option', option as "A" | "B" | "C" | "D") && (
+                        <View style={styles.optionLanguageIndicator}>
+                          <Text style={styles.optionLanguageIndicatorText}>
+                            {getLanguageIndicator(currentQ, selectedLanguage, 'option', option as "A" | "B" | "C" | "D")}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -730,6 +805,21 @@ const getStyles = (Colors: any) => StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  languageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    gap: 4,
+  },
+  languageButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.text,
   },
   timerButton: {
     flexDirection: 'row',
@@ -1065,6 +1155,43 @@ const getStyles = (Colors: any) => StyleSheet.create({
   legendText: {
     fontSize: 12,
     color: Colors.textSecondary,
+  },
+  // Language indicator styles
+  questionWithIndicator: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  languageIndicator: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 8,
+    marginTop: 2,
+  },
+  languageIndicatorText: {
+    color: Colors.background,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  optionTextContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  optionLanguageIndicator: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  optionLanguageIndicatorText: {
+    color: Colors.background,
+    fontSize: 8,
+    fontWeight: '600',
   },
 });
 
