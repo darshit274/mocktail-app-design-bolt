@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   Switch,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
+import RenderHTML from 'react-native-render-html';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ChevronLeft,
@@ -47,15 +49,17 @@ export default function SolutionsScreen() {
   const params = useLocalSearchParams();
   console.log('📚 Received params:', params);
   const { sessionId, resultId, testTitle, categoryUuid, categoryName } = params;
-  
+
   // Determine if this is a category-based quiz
-  const isCategoryQuiz = sessionId === 'category-quiz' && categoryUuid;
+  // If categoryUuid exists, it's a category quiz (matches web behavior)
+  const isCategoryQuiz = !!categoryUuid;
   
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const { theme } = useTheme();
   const Colors = getTheme(theme);
   const styles = getStyles(Colors);
   const { t } = useLanguage();
+  const { width } = useWindowDimensions();
   
   const [showAnswers, setShowAnswers] = useState<{ [key: number]: boolean }>(
     {}
@@ -136,18 +140,40 @@ export default function SolutionsScreen() {
   // Transform API data to match our interface
   const transformQuestions = (apiQuestions: any[]): Question[] => {
     if (!apiQuestions) return [];
-    
+
     return apiQuestions.map((q, index) => {
-      // Determine language preference (you can make this dynamic later)
-      const useGujarati = false; // For now, use English
-      
+      // Use language from context with FALLBACK (like web version)
+      const useGujarati = t.language === 'gujarati';
+
+      // Get question text with fallback
+      const questionText = useGujarati
+        ? (q.question_text_gujarati || q.question_text || 'No question available')
+        : (q.question_text || q.question_text_gujarati || 'No question available');
+
+      // Get options with fallback
+      const getOption = (optionKey: string) => {
+        const gujaratiKey = `option_${optionKey.toLowerCase()}_gujarati`;
+        const englishKey = `option_${optionKey.toLowerCase()}`;
+
+        if (useGujarati) {
+          return q[gujaratiKey] || q.options?.[optionKey] || q[englishKey] || `Option ${optionKey}`;
+        } else {
+          return q[englishKey] || q.options?.[optionKey] || q[gujaratiKey] || `Option ${optionKey}`;
+        }
+      };
+
+      // Get explanation with fallback
+      const explanation = useGujarati
+        ? (q.explanation_gujarati || q.explanation || 'No explanation available.')
+        : (q.explanation || q.explanation_gujarati || 'No explanation available.');
+
       return {
         id: q.id || index + 1,
-        question: useGujarati && q.question_text_gujarati ? q.question_text_gujarati : q.question_text,
-        options: q.options ? [q.options.A, q.options.B, q.options.C, q.options.D] : [],
+        question: questionText,
+        options: [getOption('A'), getOption('B'), getOption('C'), getOption('D')],
         correctAnswer: q.correct_option ? ['A', 'B', 'C', 'D'].indexOf(q.correct_option) : 0,
         userAnswer: q.selected_option ? ['A', 'B', 'C', 'D'].indexOf(q.selected_option) : undefined,
-        explanation: q.explanation || 'No explanation available.',
+        explanation: explanation,
         subject: q.subject || 'General',
         difficulty: q.difficulty_level === 'easy' ? 'Easy' : q.difficulty_level === 'medium' ? 'Medium' : 'Hard',
         timeSpent: q.time_spent || 0,
@@ -157,17 +183,44 @@ export default function SolutionsScreen() {
 
   // Transform category solutions to the same format
   const transformCategorySolutions = (solutions: any[]) => {
-    return solutions.map((solution, index) => ({
-      id: solution.id || index + 1,
-      question: solution.question_text || 'No question text',
-      options: solution.options ? [solution.options.A, solution.options.B, solution.options.C, solution.options.D] : [],
-      correctAnswer: solution.correct_answer ? ['A', 'B', 'C', 'D'].indexOf(solution.correct_answer) : 0,
-      userAnswer: undefined, // No user answer for category-based quizzes 
-      explanation: solution.explanation || 'No explanation available.',
-      subject: 'General',
-      difficulty: 'Medium', // Default difficulty for category solutions
-      timeSpent: 0, // No time tracking for category-based quizzes
-    }));
+    return solutions.map((solution, index) => {
+      // Use language from context with FALLBACK
+      const useGujarati = t.language === 'gujarati';
+
+      // Get question text with fallback
+      const questionText = useGujarati
+        ? (solution.question_text_gujarati || solution.question_text || 'No question available')
+        : (solution.question_text || solution.question_text_gujarati || 'No question available');
+
+      // Get options with fallback
+      const getOption = (optionKey: string) => {
+        const gujaratiKey = `option_${optionKey.toLowerCase()}_gujarati`;
+        const englishKey = `option_${optionKey.toLowerCase()}`;
+
+        if (useGujarati) {
+          return solution[gujaratiKey] || solution.options?.[optionKey] || solution[englishKey] || `Option ${optionKey}`;
+        } else {
+          return solution[englishKey] || solution.options?.[optionKey] || solution[gujaratiKey] || `Option ${optionKey}`;
+        }
+      };
+
+      // Get explanation with fallback
+      const explanation = useGujarati
+        ? (solution.explanation_gujarati || solution.explanation || 'No explanation available.')
+        : (solution.explanation || solution.explanation_gujarati || 'No explanation available.');
+
+      return {
+        id: solution.id || index + 1,
+        question: questionText,
+        options: [getOption('A'), getOption('B'), getOption('C'), getOption('D')],
+        correctAnswer: solution.correct_answer ? ['A', 'B', 'C', 'D'].indexOf(solution.correct_answer) : 0,
+        userAnswer: undefined, // No user answer for category-based quizzes
+        explanation: explanation,
+        subject: 'General',
+        difficulty: 'Medium', // Default difficulty for category solutions
+        timeSpent: 0, // No time tracking for category-based quizzes
+      };
+    });
   };
 
   // Use appropriate data source based on quiz type
@@ -415,6 +468,11 @@ export default function SolutionsScreen() {
   const currentQuestionData = questions[currentQuestion] || mockQuestions[0];
   const answerStatus = currentQuestionData ? getAnswerStatus(currentQuestionData, currentQuestion) : 'unanswered';
 
+  // Check if user originally answered correctly
+  const isOriginallyCorrect = currentQuestionData &&
+    currentQuestionData.userAnswer !== undefined &&
+    currentQuestionData.userAnswer === currentQuestionData.correctAnswer;
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -532,7 +590,7 @@ export default function SolutionsScreen() {
             const isCorrect = index === currentQuestionData.correctAnswer;
             const isUserAnswer = index === currentQuestionData.userAnswer;
             const isReattemptAnswer = index === reattemptAnswers[currentQuestion];
-            const showOriginalAnswers = !reattemptMode || hasReattempted[currentQuestion];
+            const showOriginalAnswers = !reattemptMode || hasReattempted[currentQuestion] || isOriginallyCorrect;
 
             // In reattempt mode, show reattempt answer styling if user has reattempted
             const showCorrectStyling = showOriginalAnswers && isCorrect;
@@ -540,7 +598,7 @@ export default function SolutionsScreen() {
             const showReattemptCorrect = reattemptMode && hasReattempted[currentQuestion] && isReattemptAnswer && isCorrect;
             const showReattemptIncorrect = reattemptMode && hasReattempted[currentQuestion] && isReattemptAnswer && !isCorrect;
 
-            const optionComponent = reattemptMode && !hasReattempted[currentQuestion] ? (
+            const optionComponent = reattemptMode && !hasReattempted[currentQuestion] && !isOriginallyCorrect ? (
               // Clickable option for reattempt
               <TouchableOpacity
                 key={index}
@@ -663,9 +721,22 @@ export default function SolutionsScreen() {
           </View>
         )}
 
+        {/* Already Correct Card */}
+        {reattemptMode && isOriginallyCorrect && !hasReattempted[currentQuestion] && (
+          <View style={styles.alreadyCorrectCard}>
+            <View style={styles.alreadyCorrectHeader}>
+              <CheckCircle size={24} color={Colors.success} />
+              <Text style={styles.alreadyCorrectTitle}>Already Correct!</Text>
+            </View>
+            <Text style={styles.alreadyCorrectText}>
+              You answered this question correctly. No need to reattempt. View the explanation below.
+            </Text>
+          </View>
+        )}
+
         {/* Show Answer Button */}
-        {/* Only show explanation button if not in reattempt mode, or if user has reattempted */}
-        {(!reattemptMode || hasReattempted[currentQuestion]) && (
+        {/* Only show explanation button if not in reattempt mode, or if user has reattempted, or if originally correct */}
+        {(!reattemptMode || hasReattempted[currentQuestion] || isOriginallyCorrect) && (
           <TouchableOpacity
             style={styles.showAnswerButton}
             onPress={() => toggleShowAnswer(currentQuestion)}
@@ -684,7 +755,7 @@ export default function SolutionsScreen() {
         )}
 
         {/* Reattempt Instructions */}
-        {reattemptMode && !hasReattempted[currentQuestion] && (
+        {reattemptMode && !hasReattempted[currentQuestion] && !isOriginallyCorrect && (
           <View style={styles.instructionCard}>
             <Text style={styles.instructionTitle}>Reattempt Mode</Text>
             <Text style={styles.instructionText}>
@@ -694,12 +765,44 @@ export default function SolutionsScreen() {
         )}
 
         {/* Explanation */}
-        {showAnswers[currentQuestion] && (!reattemptMode || hasReattempted[currentQuestion]) && (
+        {showAnswers[currentQuestion] && (!reattemptMode || hasReattempted[currentQuestion] || isOriginallyCorrect) && (
           <View style={styles.explanationCard}>
             <Text style={styles.explanationTitle}>Explanation</Text>
-            <Text style={styles.explanationText}>
-              {currentQuestionData.explanation}
-            </Text>
+            <RenderHTML
+              contentWidth={width - 80}
+              source={{ html: currentQuestionData.explanation || '<p>No explanation available.</p>' }}
+              tagsStyles={{
+                body: {
+                  color: Colors.textPrimary,
+                  fontSize: 16,
+                  lineHeight: 24,
+                },
+                p: {
+                  marginBottom: 8,
+                  color: Colors.textPrimary,
+                },
+                strong: {
+                  fontWeight: 'bold',
+                  color: Colors.text,
+                },
+                em: {
+                  fontStyle: 'italic',
+                },
+                ul: {
+                  marginLeft: 16,
+                },
+                ol: {
+                  marginLeft: 16,
+                },
+                li: {
+                  marginBottom: 4,
+                },
+                img: {
+                  maxWidth: '100%',
+                  height: 'auto',
+                },
+              }}
+            />
           </View>
         )}
       </ScrollView>
@@ -1240,5 +1343,35 @@ const getStyles = (Colors: any) => StyleSheet.create({
   },
   navFooterButtonTextDisabled: {
     color: Colors.gray400,
+  },
+  // Already Correct Card Styles
+  alreadyCorrectCard: {
+    backgroundColor: Colors.badgeSuccessBg || '#d1fae5',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.success,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  alreadyCorrectHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  alreadyCorrectTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.success,
+    marginLeft: 8,
+  },
+  alreadyCorrectText: {
+    fontSize: 14,
+    color: Colors.success,
+    lineHeight: 20,
   },
 });

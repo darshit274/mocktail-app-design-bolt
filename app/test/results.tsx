@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Trophy, Clock, Target, TrendingUp, ChevronRight, Award, Users, BookOpen, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { Trophy, Clock, Target, TrendingUp, ChevronRight, Award, Users, BookOpen, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, AlertTriangle } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -15,7 +15,7 @@ export default function TestResultsScreen() {
   console.log('📊 Results screen mounted');
   const params = useLocalSearchParams();
   console.log('📊 Received params:', params);
-  const { resultId, sessionId, score, percentage, passed, testTitle, correctAnswers, wrongAnswers, unanswered, categoryUuid, categoryName, seriesUuid } = params;
+  const { resultId, sessionId, score, percentage, passed, testTitle, correctAnswers, wrongAnswers, unanswered, categoryUuid, categoryName, seriesUuid, negativeMarkingEnabled, negativeMarks, finalScore } = params;
   
   const [activeTab, setActiveTab] = useState<'overview' | 'analysis'>('overview');
   const { theme } = useTheme();
@@ -280,6 +280,40 @@ export default function TestResultsScreen() {
                 </View>
               </View>
             </View>
+
+            {/* Negative Marking Card */}
+            {negativeMarkingEnabled === 'true' && (
+              <View style={styles.negativeMarkingCard}>
+                <View style={styles.negativeMarkingHeader}>
+                  <AlertTriangle size={20} color={Colors.warning} />
+                  <Text style={styles.negativeMarkingTitle}>Negative Marking Applied</Text>
+                </View>
+                <View style={styles.negativeMarkingContent}>
+                  <View style={styles.negativeMarkingRow}>
+                    <Text style={styles.negativeMarkingLabel}>Correct Answers</Text>
+                    <Text style={styles.negativeMarkingValue}>+{correctCount}</Text>
+                  </View>
+                  <View style={styles.negativeMarkingRow}>
+                    <Text style={styles.negativeMarkingLabel}>Negative Marks</Text>
+                    <Text style={[styles.negativeMarkingValue, styles.negativeMarkingNegative]}>
+                      -{parseFloat(negativeMarks as string || '0').toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.negativeMarkingDivider} />
+                  <View style={styles.negativeMarkingRow}>
+                    <Text style={styles.negativeMarkingLabelFinal}>Final Score</Text>
+                    <Text style={styles.negativeMarkingValueFinal}>
+                      {parseFloat(finalScore as string || score as string || '0').toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.negativeMarkingFooter}>
+                  <Text style={styles.negativeMarkingFooterText}>
+                    ℹ️ Wrong answers received penalty as per negative marking rules
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* Progress Chart */}
             <View style={styles.chartContainer}>
@@ -768,5 +802,80 @@ const getStyles = (Colors: any) => StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
+  },
+  // Negative Marking Styles
+  negativeMarkingCard: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: Colors.warning,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  negativeMarkingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  negativeMarkingTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.warning,
+    marginLeft: 8,
+  },
+  negativeMarkingContent: {
+    backgroundColor: Colors.background,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  negativeMarkingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  negativeMarkingLabel: {
+    fontSize: 14,
+    color: Colors.textSubtle,
+  },
+  negativeMarkingValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.success,
+  },
+  negativeMarkingNegative: {
+    color: Colors.error,
+  },
+  negativeMarkingDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: 8,
+  },
+  negativeMarkingLabelFinal: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  negativeMarkingValueFinal: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  negativeMarkingFooter: {
+    backgroundColor: Colors.backgroundSecondary || Colors.background,
+    borderRadius: 8,
+    padding: 10,
+  },
+  negativeMarkingFooterText: {
+    fontSize: 12,
+    color: Colors.textSubtle,
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });

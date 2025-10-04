@@ -67,10 +67,29 @@ export interface Subscription {
   amount: number;
 }
 
+export interface DashboardStats {
+  totalTests: number;
+  completedTests: number;
+  totalScore: number;
+  rank: number | null;
+  totalStudents: number;
+  activeSubscriptions: number;
+  recentActivity: Array<{
+    id: number;
+    sessionUuid: string;
+    type: string;
+    title: string;
+    date: string;
+    score: number;
+    total: number;
+    percentage: number;
+  }>;
+}
+
 export const userApi = createApi({
   reducerPath: 'userApi',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Profile', 'TestHistory', 'Subscriptions'],
+  tagTypes: ['Profile', 'TestHistory', 'Subscriptions', 'Dashboard'],
   endpoints: (builder) => ({
     // Get user profile
     getProfile: builder.query<{ success: boolean; data: UserProfile }, void>({
@@ -186,6 +205,18 @@ export const userApi = createApi({
       }),
       providesTags: ['Subscriptions'],
     }),
+
+    // Get dashboard stats
+    getDashboardStats: builder.query<
+      { success: boolean; message: string; data: DashboardStats },
+      void
+    >({
+      query: () => ({
+        url: '/dashboard/stats',
+        method: 'GET',
+      }),
+      providesTags: ['Dashboard'],
+    }),
   }),
 });
 
@@ -194,4 +225,5 @@ export const {
   useUpdateProfileMutation,
   useGetTestHistoryQuery,
   useGetSubscriptionsQuery,
+  useGetDashboardStatsQuery,
 } = userApi;

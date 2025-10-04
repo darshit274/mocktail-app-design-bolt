@@ -228,19 +228,19 @@ export default function CategoryDetailScreen() {
               <View style={styles.categoryContent}>
                 <View style={styles.categoryTitleRow}>
                   <Text style={styles.categoryTitle}>
-                    {language === 'gujarati' && subcategory.name_gujarati
-                      ? subcategory.name_gujarati
-                      : subcategory.name}
+                    {language === 'gujarati'
+                      ? (subcategory.name_gujarati || subcategory.name)
+                      : (subcategory.name || subcategory.name_gujarati)}
                   </Text>
                   <View style={styles.levelIndicator}>
                     <Text style={styles.levelText}>L{subcategory.hierarchy_level}</Text>
                   </View>
                 </View>
-                {subcategory.description && (
+                {(subcategory.description || subcategory.description_gujarati) && (
                   <Text style={styles.categoryDescription}>
-                    {language === 'gujarati' && subcategory.description_gujarati
-                      ? subcategory.description_gujarati
-                      : subcategory.description}
+                    {language === 'gujarati'
+                      ? (subcategory.description_gujarati || subcategory.description)
+                      : (subcategory.description || subcategory.description_gujarati)}
                   </Text>
                 )}
                 <View style={styles.categoryMeta}>
@@ -318,9 +318,9 @@ export default function CategoryDetailScreen() {
             <View key={question.uuid} style={styles.questionPreview}>
               <Text style={styles.questionNumber}>Q{index + 1}.</Text>
               <Text style={styles.questionText}>
-                {language === 'gujarati' && question.question_text_gujarati
-                  ? question.question_text_gujarati
-                  : question.question_text}
+                {language === 'gujarati'
+                  ? (question.question_text_gujarati || question.question_text || 'No question available')
+                  : (question.question_text || question.question_text_gujarati || 'No question available')}
               </Text>
             </View>
           ))}
@@ -364,9 +364,9 @@ export default function CategoryDetailScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>
-            {language === 'gujarati' && category.name_gujarati
-              ? category.name_gujarati
-              : category.name}
+            {language === 'gujarati'
+              ? (category.name_gujarati || category.name)
+              : (category.name || category.name_gujarati)}
           </Text>
         </View>
       </View>
@@ -376,12 +376,12 @@ export default function CategoryDetailScreen() {
         {renderBreadcrumb()}
 
         {/* Category Description */}
-        {category.description && (
+        {(category.description || category.description_gujarati) && (
           <View style={styles.descriptionContainer}>
             <Text style={styles.descriptionText}>
-              {language === 'gujarati' && category.description_gujarati
-                ? category.description_gujarati
-                : category.description}
+              {language === 'gujarati'
+                ? (category.description_gujarati || category.description)
+                : (category.description || category.description_gujarati)}
             </Text>
           </View>
         )}

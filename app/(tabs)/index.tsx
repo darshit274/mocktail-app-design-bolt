@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, Search, Play, Clock, Users, Award, BookOpen, FileText, User } from 'lucide-react-native';
@@ -7,15 +7,18 @@ import { router } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useGetProfileQuery } from '@/store/api/userApi';
+import { useGetProfileQuery, useGetDashboardStatsQuery } from '@/store/api/userApi';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
   const Colors = getTheme(theme);
   const { t } = useLanguage();
   const { data: profileData } = useGetProfileQuery();
+  const { data: dashboardData, isLoading: isDashboardLoading, error: dashboardError } = useGetDashboardStatsQuery();
+
   const userProfile = profileData?.data;
-  
+  const dashboardStats = dashboardData?.data;
+
   const quickActions = [
     { id: 1, title: t.freeTests.title, icon: Play, color: Colors.success, route: '/test-series' },
     { id: 2, title: t.freeTests.pyqs, icon: Clock, color: Colors.accent, route: '/test-series' },
@@ -23,11 +26,22 @@ export default function HomeScreen() {
     { id: 4, title: t.pdfs.title, icon: FileText, color: Colors.primaryLight, route: '/pdfs' },
   ];
 
-  const recentTests = [
-    { id: 1, title: 'NCERT Class 10 - Math', score: 85, total: 100, date: '2 days ago' },
-    { id: 2, title: 'PSI Mock Test 1', score: 72, total: 100, date: '5 days ago' },
-    { id: 3, title: 'Deputy Section Officer', score: 91, total: 100, date: '1 week ago' },
-  ];
+  // Format date helper
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInDays === 0) return 'Today';
+    if (diffInDays === 1) return 'Yesterday';
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} week${Math.floor(diffInDays / 7) > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Use real data from API, or fallback to empty array
+  const recentTests = dashboardStats?.recentActivity || [];
 
   const styles = getStyles(Colors);
 
@@ -71,16 +85,24 @@ export default function HomeScreen() {
             style={styles.statCard}
           >
             <Award size={32} color="#FFFFFF" />
-            <Text style={styles.statNumber}>{userProfile?.stats?.totalScore || 0}</Text>
+            {isDashboardLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" style={{ marginTop: 8 }} />
+            ) : (
+              <Text style={styles.statNumber}>{dashboardStats?.totalScore || 0}</Text>
+            )}
             <Text style={styles.statLabel}>{t.home.totalScore}</Text>
           </LinearGradient>
-          
+
           <LinearGradient
             colors={[Colors.primaryLight, Colors.primary]}
             style={styles.statCard}
           >
             <Users size={32} color="#FFFFFF" />
-            <Text style={styles.statNumber}>#{userProfile?.stats?.rank || '--'}</Text>
+            {isDashboardLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" style={{ marginTop: 8 }} />
+            ) : (
+              <Text style={styles.statNumber}>#{dashboardStats?.rank || '--'}</Text>
+            )}
             <Text style={styles.statLabel}>{t.home.rank}</Text>
           </LinearGradient>
         </View>
@@ -113,22 +135,32 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           
-          {recentTests.map((test) => (
-            <TouchableOpacity key={test.id} style={styles.testCard}>
-              <View style={styles.testCardLeft}>
-                <Text style={styles.testTitle}>{test.title}</Text>
-                <Text style={styles.testDate}>{test.date}</Text>
-              </View>
-              <View style={styles.testCardRight}>
-                <Text style={styles.testScore}>{test.score}/{test.total}</Text>
-                <View style={styles.progressBar}>
-                  <View 
-                    style={[styles.progressFill, { width: `${(test.score / test.total) * 100}%` }]} 
-                  />
+          {isDashboardLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          ) : recentTests.length > 0 ? (
+            recentTests.map((test) => (
+              <TouchableOpacity key={test.id} style={styles.testCard}>
+                <View style={styles.testCardLeft}>
+                  <Text style={styles.testTitle}>{test.title}</Text>
+                  <Text style={styles.testDate}>{formatDate(test.date)}</Text>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+                <View style={styles.testCardRight}>
+                  <Text style={styles.testScore}>{test.score}/{test.total}</Text>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[styles.progressFill, { width: `${test.percentage}%` }]}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No recent tests yet. Start practicing!</Text>
+            </View>
+          )}
         </View>
 
         {/* Featured Test Series */}
@@ -355,5 +387,22 @@ const getStyles = (Colors: any) => StyleSheet.create({
     fontSize: 12,
     color: '#FFFFFF',
     opacity: 0.8,
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyState: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 12,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: Colors.textSubtle,
+    textAlign: 'center',
   },
 });
