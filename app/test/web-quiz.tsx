@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clock, Flag, ChevronLeft, ChevronRight, AlertTriangle, Grid3X3 } from 'lucide-react-native';
@@ -34,13 +34,20 @@ export default function WebQuizScreen() {
   const [negativeMarksPerWrong, setNegativeMarksPerWrong] = useState(0);
   const [quizStarted, setQuizStarted] = useState(false);
 
+  // Language selection states
+  const [showLanguageSelection, setShowLanguageSelection] = useState(false);
+  const [selectedQuizLanguage, setSelectedQuizLanguage] = useState<'english' | 'gujarati'>('gujarati'); // Default to Gujarati
+
+  // Submit confirmation state
+  const [showSubmitConfirmation, setShowSubmitConfirmation] = useState(false);
+
   const { theme } = useTheme();
   const Colors = getTheme(theme);
   const { t } = useLanguage();
   const styles = getStyles(Colors);
 
   // Determine language preference for fallback logic
-  const useGujarati = t.language === 'gujarati';
+  const useGujarati = selectedQuizLanguage === 'gujarati';
 
   // Get auth state
   const { user } = useSelector((state: RootState) => state.auth);
@@ -57,7 +64,7 @@ export default function WebQuizScreen() {
     {
       categoryUuid: categoryUuid as string,
       language: 'english',
-      shuffle: true
+      shuffle: false
     },
     { skip: !categoryUuid }
   );
@@ -83,14 +90,14 @@ export default function WebQuizScreen() {
       setQuestions(questionsList);
       console.log('✅ Web Quiz initialized with', questionsList.length, 'questions');
 
+      // Show language selection first
+      setShowLanguageSelection(true);
+
       // Check for negative marking
       if (category?.negative_marking_enabled) {
         console.log('⚠️ Negative marking enabled:', category.negative_marks_per_wrong || 0.25);
         setNegativeMarkingEnabled(true);
         setNegativeMarksPerWrong(category.negative_marks_per_wrong || 0.25);
-        setShowNegativeMarkingWarning(true);
-      } else {
-        setQuizStarted(true); // Start immediately if no negative marking
       }
     }
   }, [questionsData]);
@@ -123,13 +130,22 @@ export default function WebQuizScreen() {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Helper function to preserve line breaks
+  const preserveLineBreaks = (text: string): string => {
+    if (!text) return '';
+    // Handle both actual newlines and escaped newlines from Excel
+    return text.replace(/\\n/g, '\n');
+  };
+
   // Helper function to get question text with language fallback
   const getQuestionText = (question: any) => {
+    let text = '';
     if (useGujarati) {
-      return question.question_text_gujarati || question.question_text || 'No question available';
+      text = question.question_text_gujarati || question.question_text || 'No question available';
     } else {
-      return question.question_text || question.question_text_gujarati || 'No question available';
+      text = question.question_text || question.question_text_gujarati || 'No question available';
     }
+    return preserveLineBreaks(text);
   };
 
   // Helper function to get option text with language fallback
@@ -137,11 +153,13 @@ export default function WebQuizScreen() {
     const gujaratiKey = `option_${optionKey.toLowerCase()}_gujarati`;
     const englishKey = `option_${optionKey.toLowerCase()}`;
 
+    let text = '';
     if (useGujarati) {
-      return question[gujaratiKey] || question.options?.[optionKey] || question[englishKey] || `Option ${optionKey}`;
+      text = question[gujaratiKey] || question.options?.[optionKey] || question[englishKey] || `Option ${optionKey}`;
     } else {
-      return question[englishKey] || question.options?.[optionKey] || question[gujaratiKey] || `Option ${optionKey}`;
+      text = question[englishKey] || question.options?.[optionKey] || question[gujaratiKey] || `Option ${optionKey}`;
     }
+    return preserveLineBreaks(text);
   };
 
   const handleAnswerSelect = (questionId: string, option: 'A' | 'B' | 'C' | 'D') => {
@@ -161,6 +179,14 @@ export default function WebQuizScreen() {
       }
       return newSet;
     });
+  };
+
+  const confirmAndSubmitQuiz = () => {
+    // Close grid if open, then show confirmation
+    if (showGrid) {
+      setShowGrid(false);
+    }
+    setShowSubmitConfirmation(true);
   };
 
   const handleSubmitQuiz = async () => {
@@ -338,7 +364,7 @@ export default function WebQuizScreen() {
       {/* Submit button in grid view */}
       <TouchableOpacity
         style={styles.gridSubmitButton}
-        onPress={handleSubmitQuiz}
+        onPress={confirmAndSubmitQuiz}
       >
         <Text style={styles.gridSubmitButtonText}>Submit Quiz</Text>
       </TouchableOpacity>
@@ -373,9 +399,9 @@ export default function WebQuizScreen() {
     </View>
   );
 
+  // ALL MODALS MUST be defined before any early returns that use them
   // Submission Loader Modal - Shows while quiz is being submitted
-  // MUST be defined before any early returns that use it
-  const SubmissionLoaderModal = () => (
+  const SubmissionLoaderModal = useMemo(() => (
     <Modal
       visible={isSubmitting}
       transparent
@@ -391,65 +417,95 @@ export default function WebQuizScreen() {
         </View>
       </View>
     </Modal>
-  );
+  ), [isSubmitting, Colors]);
 
-  // Show grid view if user opened it
-  if (showGrid) {
-    return (
-      <SafeAreaView style={styles.container}>
-        {/* Submission Loader Modal - Also needed in grid view */}
-        <SubmissionLoaderModal />
+  // Language Selection Modal
+  const LanguageSelectionModal = useMemo(() => (
+    <Modal
+      visible={showLanguageSelection}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowLanguageSelection(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {/* Title */}
+          <Text style={styles.modalTitle}>Choose Language / ભાષા પસંદ કરો</Text>
 
-        {renderQuestionGrid()}
-      </SafeAreaView>
-    );
-  }
+          {/* Description */}
+          <Text style={styles.modalDescription}>
+            Select your preferred language for the quiz
+          </Text>
 
-  // Loading state
-  if (loadingQuestions) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading questions...</Text>
+          {/* Language Buttons */}
+          <View style={styles.languageButtonsContainer}>
+            <TouchableOpacity
+              style={[
+                styles.languageButton,
+                selectedQuizLanguage === 'gujarati' && styles.languageButtonSelected,
+                { backgroundColor: selectedQuizLanguage === 'gujarati' ? Colors.primary : Colors.backgroundSecondary }
+              ]}
+              onPress={() => setSelectedQuizLanguage('gujarati')}
+            >
+              <Text style={[
+                styles.languageButtonText,
+                { color: selectedQuizLanguage === 'gujarati' ? Colors.white : Colors.textPrimary }
+              ]}>
+                ગુજરાતી (Gujarati)
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.languageButton,
+                selectedQuizLanguage === 'english' && styles.languageButtonSelected,
+                { backgroundColor: selectedQuizLanguage === 'english' ? Colors.primary : Colors.backgroundSecondary }
+              ]}
+              onPress={() => setSelectedQuizLanguage('english')}
+            >
+              <Text style={[
+                styles.languageButtonText,
+                { color: selectedQuizLanguage === 'english' ? Colors.white : Colors.textPrimary }
+              ]}>
+                English
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Buttons */}
+          <View style={styles.modalButtonsContainer}>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => {
+                setShowLanguageSelection(false);
+                router.back();
+              }}
+            >
+              <Text style={styles.modalCancelButtonText}>Go Back</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalStartButton}
+              onPress={() => {
+                setShowLanguageSelection(false);
+                // Show negative marking warning if enabled, otherwise start quiz
+                if (negativeMarkingEnabled) {
+                  setShowNegativeMarkingWarning(true);
+                } else {
+                  setQuizStarted(true);
+                }
+              }}
+            >
+              <Text style={styles.modalStartButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Error state
-  if (questionsError || !questionsData?.success) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Failed to load questions</Text>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // No questions available
-  if (!questions.length) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No questions available</Text>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const currentQuestionData = questions[currentQuestion];
-  const isLastQuestion = currentQuestion === questions.length - 1;
+      </View>
+    </Modal>
+  ), [showLanguageSelection, selectedQuizLanguage, negativeMarkingEnabled, Colors]);
 
   // Negative Marking Warning Modal
-  const NegativeMarkingWarningModal = () => (
+  const NegativeMarkingWarningModal = useMemo(() => (
     <Modal
       visible={showNegativeMarkingWarning}
       transparent
@@ -534,15 +590,140 @@ export default function WebQuizScreen() {
         </View>
       </View>
     </Modal>
-  );
+  ), [showNegativeMarkingWarning, negativeMarksPerWrong, Colors]);
+
+  // Submit Confirmation Modal
+  const SubmitConfirmationModal = useMemo(() => (
+    <Modal
+      visible={showSubmitConfirmation}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowSubmitConfirmation(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {/* Warning Icon */}
+          <View style={styles.modalIconContainer}>
+            <AlertTriangle size={48} color={Colors.warning} />
+          </View>
+
+          {/* Title */}
+          <Text style={styles.modalTitle}>Submit Test?</Text>
+
+          {/* Description */}
+          <Text style={styles.modalDescription}>
+            Are you sure you want to submit the test? You cannot change your answers after submission.
+          </Text>
+
+          {/* Stats */}
+          <View style={styles.submitStatsContainer}>
+            <View style={styles.submitStatItem}>
+              <Text style={styles.submitStatLabel}>Answered:</Text>
+              <Text style={styles.submitStatValue}>{Object.keys(selectedAnswers).length}/{questions.length}</Text>
+            </View>
+            <View style={styles.submitStatItem}>
+              <Text style={styles.submitStatLabel}>Flagged:</Text>
+              <Text style={styles.submitStatValue}>{flaggedQuestions.size}</Text>
+            </View>
+          </View>
+
+          {/* Buttons */}
+          <View style={styles.modalButtonsContainer}>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowSubmitConfirmation(false)}
+            >
+              <Text style={styles.modalCancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalStartButton, { backgroundColor: Colors.error }]}
+              onPress={() => {
+                setShowSubmitConfirmation(false);
+                handleSubmitQuiz();
+              }}
+            >
+              <Text style={styles.modalStartButtonText}>Yes, Submit</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  ), [showSubmitConfirmation, selectedAnswers, questions.length, flaggedQuestions.size, Colors]);
+
+  // Show grid view if user opened it
+  if (showGrid) {
+    return (
+      <SafeAreaView style={styles.container}>
+        {/* Submission Loader Modal - Also needed in grid view */}
+        {SubmissionLoaderModal}
+
+        {/* Submit Confirmation Modal - Also needed in grid view */}
+        {SubmitConfirmationModal}
+
+        {renderQuestionGrid()}
+      </SafeAreaView>
+    );
+  }
+
+  // Loading state
+  if (loadingQuestions) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading questions...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (questionsError || !questionsData?.success) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Failed to load questions</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // No questions available
+  if (!questions.length) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No questions available</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const currentQuestionData = questions[currentQuestion];
+  const isLastQuestion = currentQuestion === questions.length - 1;
+
+  // Note: All modals are defined above before early returns
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Submission Loader Modal */}
-      <SubmissionLoaderModal />
+      {SubmissionLoaderModal}
+
+      {/* Language Selection Modal */}
+      {LanguageSelectionModal}
 
       {/* Negative Marking Warning Modal */}
-      <NegativeMarkingWarningModal />
+      {NegativeMarkingWarningModal}
+
+      {/* Submit Confirmation Modal */}
+      {SubmitConfirmationModal}
 
       {/* Header */}
       <View style={styles.header}>
@@ -636,7 +817,7 @@ export default function WebQuizScreen() {
         {isLastQuestion ? (
           <TouchableOpacity
             style={[styles.submitButton, (isSubmitting || submittingWebQuiz) && styles.submitButtonDisabled]}
-            onPress={handleSubmitQuiz}
+            onPress={confirmAndSubmitQuiz}
             disabled={isSubmitting || submittingWebQuiz}
           >
             <View style={styles.submitButtonContent}>
@@ -1080,5 +1261,47 @@ const getStyles = (Colors: any) => StyleSheet.create({
   gridItemTextCurrent: {
     color: Colors.white,
     fontWeight: 'bold',
+  },
+  languageButtonsContainer: {
+    flexDirection: 'column',
+    gap: 12,
+    marginBottom: 24,
+    marginTop: 16,
+  },
+  languageButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  languageButtonSelected: {
+    borderColor: Colors.primary,
+  },
+  languageButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  submitStatsContainer: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  submitStatItem: {
+    alignItems: 'center',
+  },
+  submitStatLabel: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  submitStatValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.primary,
   },
 });

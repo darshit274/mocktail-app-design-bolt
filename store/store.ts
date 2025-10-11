@@ -4,6 +4,7 @@ import authSlice from './slices/authSlice';
 import { authApi } from './api/authApi';
 import { pdfApi } from './api/pdfApi';
 import { freeTestsApi } from './api/freeTestsApi';
+import { freeInPaidApi } from './api/freeInPaidApi';
 import { testSeriesApi } from './api/testSeriesApi';
 import { testManagementApi } from './api/testManagementApi';
 import { quizApi } from './api/quizApi';
@@ -21,6 +22,7 @@ export const store = configureStore({
     [authApi.reducerPath]: authApi.reducer,
     [pdfApi.reducerPath]: pdfApi.reducer,
     [freeTestsApi.reducerPath]: freeTestsApi.reducer,
+    [freeInPaidApi.reducerPath]: freeInPaidApi.reducer,
     [testSeriesApi.reducerPath]: testSeriesApi.reducer,
     [testManagementApi.reducerPath]: testManagementApi.reducer,
     [quizApi.reducerPath]: quizApi.reducer,
@@ -41,6 +43,7 @@ export const store = configureStore({
       authApi.middleware,
       pdfApi.middleware,
       freeTestsApi.middleware,
+      freeInPaidApi.middleware,
       testSeriesApi.middleware,
       testManagementApi.middleware,
       quizApi.middleware,

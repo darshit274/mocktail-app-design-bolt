@@ -15,8 +15,6 @@ export interface TestSeries {
   price: number;
   currency: string;
   original_price?: number;
-  demo_tests_count?: number;
-  subscription_duration_days?: number;
   discount_percentage?: number;
   is_featured: boolean;
   created_at: string;

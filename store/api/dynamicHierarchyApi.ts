@@ -17,8 +17,6 @@ export interface DynamicTestSeries {
   pricing_type: 'free' | 'paid';
   price: string;
   currency: string;
-  demo_tests_count: number;
-  subscription_duration_days: number;
   discount_percentage: string;
   is_featured: boolean;
   created_at: string;
@@ -352,8 +350,6 @@ export const convertDynamicSeriesToOldFormat = (series: DynamicTestSeries): any 
     categories_count: series.categories_count,
     tests_count: series.tests_count,
     total_tests: series.total_questions,
-    free_tests: series.demo_tests_count,
-    duration_months: Math.ceil(series.subscription_duration_days / 30),
     rating: 4.5, // Default rating
     rating_count: 100, // Default rating count
     purchase_count: 0, // Default purchase count

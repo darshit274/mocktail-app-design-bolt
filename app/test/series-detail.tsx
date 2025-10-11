@@ -264,9 +264,11 @@ export default function SeriesDetailScreen() {
             {series.name || series.title}
           </Text>
           
-          {series.description && (
+          {(series.description || series.description_gujarati) && (
             <Text style={[styles.seriesDescription, { color: Colors.textSubtle }]}>
-              {series.description}
+              {t.language === 'gujarati' && series.description_gujarati
+                ? series.description_gujarati
+                : series.description}
             </Text>
           )}
 

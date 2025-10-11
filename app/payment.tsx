@@ -47,35 +47,21 @@ export default function PaymentScreen() {
     return Math.round((1 - series.price / series.original_price) * 100);
   };
 
-  // Format duration
-  const formatDuration = () => {
-    if (!series?.subscription_duration_days) return '';
-    const months = Math.round(series.subscription_duration_days / 30);
-    return months > 1 ? `${months} months` : `${months} month`;
-  };
-
   // Generate features list
   const getFeatures = () => {
     if (!series) return [];
-    
+
     const features = [];
-    
+
     if (series.tests_count) {
       features.push(t.payment.features.fullLengthTests.replace('{count}', series.tests_count.toString()));
     }
-    
-    if (series.demo_tests_count) {
-      features.push(t.payment.features.freeTests.replace('{count}', series.demo_tests_count.toString()));
-    }
-    
+
     features.push(t.payment.features.detailedSolutions);
     features.push(t.payment.features.performanceAnalytics);
     features.push(t.payment.features.multiLanguage);
-    
-    if (series.subscription_duration_days) {
-      features.push(t.payment.features.validity.replace('{duration}', formatDuration()));
-    }
-    
+    features.push(t.payment.features.validity.replace('{duration}', '12 months')); // Default 12 months validity
+
     return features;
   };
 

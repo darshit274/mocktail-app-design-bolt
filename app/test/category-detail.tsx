@@ -26,7 +26,7 @@ export default function CategoryDetailScreen() {
     seriesUuid: string;
   }>();
 
-  const [language, setLanguage] = useState<'english' | 'gujarati'>('english');
+  const [language, setLanguage] = useState<'english' | 'gujarati'>('gujarati');
 
   const { theme } = useTheme();
   const Colors = getTheme(theme);

@@ -149,15 +149,15 @@ export default function TestSeriesScreen() {
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Clock size={16} color={Colors.textSubtle} />
-          <Text style={styles.statText}>{Math.ceil((series.subscription_duration_days || 365) / 30)} months</Text>
+          <Text style={styles.statText}>12 months</Text>
         </View>
         <View style={styles.statItem}>
           <Play size={16} color={Colors.textSubtle} />
           <Text style={styles.statText}>{series.tests_count || series.total_tests || 0} tests</Text>
         </View>
         <View style={styles.statItem}>
-          <Gift size={16} color={Colors.textSubtle} />
-          <Text style={styles.statText}>{series.demo_tests_count || series.free_tests || 0} free</Text>
+          <Award size={16} color={Colors.textSubtle} />
+          <Text style={styles.statText}>Full Access</Text>
         </View>
       </View>
 
@@ -178,15 +178,6 @@ export default function TestSeriesScreen() {
         </View>
         
         <View style={styles.buttonContainer}>
-          {(series.demo_tests_count || series.free_tests || 0) > 0 && !hasAccess && (
-            <TouchableOpacity 
-              style={styles.freeTestButton}
-              onPress={() => handleStartTest(series)}
-            >
-              <Text style={styles.freeTestText}>Try Free</Text>
-            </TouchableOpacity>
-          )}
-          
           {hasAccess ? (
             <TouchableOpacity 
               style={styles.startButton}

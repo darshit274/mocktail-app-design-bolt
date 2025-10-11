@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bell, Search, Play, Clock, Users, Award, BookOpen, FileText, User } from 'lucide-react-native';
+import { Bell, Search, Play, Clock, Users, Award, BookOpen, FileText, User, Gift } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -20,8 +20,8 @@ export default function HomeScreen() {
   const dashboardStats = dashboardData?.data;
 
   const quickActions = [
-    { id: 1, title: t.freeTests.title, icon: Play, color: Colors.success, route: '/test-series' },
-    { id: 2, title: t.freeTests.pyqs, icon: Clock, color: Colors.accent, route: '/test-series' },
+    { id: 1, title: t.freeTests.title, icon: Play, color: Colors.success, route: '/free-tests' },
+    { id: 2, title: 'Free Samples', icon: Gift, color: Colors.warning, route: '/free-in-paid-tests' },
     { id: 3, title: t.testSeries.title, icon: BookOpen, color: Colors.primary, route: '/test-series' },
     { id: 4, title: t.pdfs.title, icon: FileText, color: Colors.primaryLight, route: '/pdfs' },
   ];
