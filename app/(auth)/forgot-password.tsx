@@ -6,6 +6,8 @@ import { useDispatch } from 'react-redux';
 import { setPendingVerification, setError } from '@/store/slices/authSlice';
 import { AuthLayout, FormInput, GradientButton, LinkText } from '@/components/shared';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { validateEmail } from '@/utils/validation';
+import { handleApiError } from '@/utils/errorHandler';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -15,29 +17,24 @@ export default function ForgotPasswordScreen() {
   const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
   const { t } = useLanguage();
 
-  const validateForm = () => {
+  const handleReset = async () => {
+    // Use shared validation utility
     if (!email.trim()) {
       Toast.show({
         type: 'error',
         text1: t.common.error,
         text2: t.auth.validation.emailRequired,
       });
-      return false;
+      return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
+    if (!validateEmail(email)) {
       Toast.show({
         type: 'error',
         text1: t.common.error,
         text2: t.auth.validation.invalidEmail,
       });
-      return false;
+      return;
     }
-    return true;
-  };
-
-  const handleReset = async () => {
-    if (!validateForm()) return;
 
     try {
       await forgotPassword({

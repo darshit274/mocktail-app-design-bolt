@@ -15,6 +15,7 @@ export interface WebQuizSubmissionRequest {
     timeSpent?: number;
     isMarkedForReview?: boolean;
   }>;
+  totalQuestions?: number; // IMPORTANT: Actual total question count for proper calculation
   totalTimeSpent?: number;
   markedForReviewCount?: number;
 }

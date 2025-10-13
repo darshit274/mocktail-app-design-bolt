@@ -6,6 +6,8 @@ import { useDispatch } from 'react-redux';
 import { setCredentials, setPendingVerification, setError } from '@/store/slices/authSlice';
 import { AuthLayout, FormInput, GradientButton, LinkText } from '@/components/shared';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { validateSignupForm } from '@/utils/validation';
+import { handleApiError } from '@/utils/errorHandler';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
@@ -18,52 +20,17 @@ export default function SignupScreen() {
   const [register, { isLoading }] = useRegisterMutation();
   const { t } = useLanguage();
 
-  const validateForm = () => {
-    if (!name.trim()) {
-      Toast.show({
-        type: 'error',
-        text1: t.common.error,
-        text2: t.auth.validation.nameRequired,
-      });
-      return false;
-    }
-    if (!email.trim()) {
-      Toast.show({
-        type: 'error',
-        text1: t.common.error, 
-        text2: t.auth.validation.emailRequired,
-      });
-      return false;
-    }
-    if (!password.trim()) {
-      Toast.show({
-        type: 'error',
-        text1: t.common.error,
-        text2: t.auth.validation.passwordRequired,
-      });
-      return false;
-    }
-    if (password !== confirmPassword) {
-      Toast.show({
-        type: 'error',
-        text1: t.common.error,
-        text2: t.auth.validation.passwordMismatch,
-      });
-      return false;
-    }
-    if (password.length < 6) {
-      Toast.show({
-        type: 'error',
-        text1: t.common.error,
-        text2: t.auth.validation.passwordMinLength,
-      });
-      return false;
-    }
-    return true;
-  };
-
   const handleSignup = async () => {
-    if (!validateForm()) return;
+    // Use shared validation utility
+    const validation = validateSignupForm(name, email, password, confirmPassword, t);
+    if (!validation.isValid) {
+      Toast.show({
+        type: 'error',
+        text1: t.common.error,
+        text2: validation.error,
+      });
+      return;
+    }
 
     try {
       const result = await register({

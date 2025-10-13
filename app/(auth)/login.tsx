@@ -9,6 +9,8 @@ import { AuthLayout, FormInput, GradientButton, LinkText } from '@/components/sh
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { validateLoginForm } from '@/utils/validation';
+import { handleApiError } from '@/utils/errorHandler';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -21,28 +23,17 @@ export default function LoginScreen() {
   const [login, { isLoading }] = useLoginMutation();
   const [resendOTP] = useResendOTPMutation();
 
-  const validateForm = () => {
-    if (!email.trim()) {
-      Toast.show({
-        type: 'error',
-        text1: t.common.error,
-        text2: t.auth.validation.emailRequired,
-      });
-      return false;
-    }
-    if (!password.trim()) {
-      Toast.show({
-        type: 'error',
-        text1: t.common.error,
-        text2: t.auth.validation.passwordRequired,
-      });
-      return false;
-    }
-    return true;
-  };
-
   const handleLogin = async () => {
-    if (!validateForm()) return;
+    // Use shared validation utility
+    const validation = validateLoginForm(email, password, t);
+    if (!validation.isValid) {
+      Toast.show({
+        type: 'error',
+        text1: t.common.error,
+        text2: validation.error,
+      });
+      return;
+    }
 
     try {
       const result = await login({

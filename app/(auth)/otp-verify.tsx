@@ -9,6 +9,8 @@ import { clearPendingVerification, setError, setCredentials } from '@/store/slic
 import { AuthLayout, FormInput, GradientButton, LinkText } from '@/components/shared';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { API_CONFIG } from '@/config/constants';
+import { validateOTP } from '@/utils/validation';
+import { handleApiError } from '@/utils/errorHandler';
 
 export default function OtpVerifyScreen() {
   const [otp, setOtp] = useState('');
@@ -21,22 +23,23 @@ export default function OtpVerifyScreen() {
   const [login] = useLoginMutation();
   const { t } = useLanguage();
 
-  const validateForm = () => {
+  const handleVerify = async () => {
+    // Use shared validation utility
     if (!otp.trim()) {
       Toast.show({
         type: 'error',
         text1: t.common.error,
         text2: t.auth.validation.otpRequired,
       });
-      return false;
+      return;
     }
-    if (otp.length !== 4) {
+    if (!validateOTP(otp)) {
       Toast.show({
         type: 'error',
         text1: t.common.error,
         text2: t.auth.validation.otpLength,
       });
-      return false;
+      return;
     }
     if (!pendingVerification.email) {
       Toast.show({
@@ -44,13 +47,8 @@ export default function OtpVerifyScreen() {
         text1: t.common.error,
         text2: t.auth.validation.noPendingVerification,
       });
-      return false;
+      return;
     }
-    return true;
-  };
-
-  const handleVerify = async () => {
-    if (!validateForm()) return;
 
     try {
       await verifyOTP({

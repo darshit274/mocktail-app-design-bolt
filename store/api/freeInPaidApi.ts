@@ -25,6 +25,7 @@ export interface FreeInPaidCategory {
     node_type: string;
   }>;
   breadcrumb: string;
+  breadcrumb_gujarati: string;
 }
 
 export interface FreeInPaidSeries {

@@ -3,11 +3,13 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Tabs } from 'expo-router';
 import { Chrome as Home, BookOpen, User, FileText, Play, Bell } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const Colors = getTheme(theme);
+  const insets = useSafeAreaInsets();
   
   return (
     <Tabs
@@ -19,9 +21,9 @@ export default function TabLayout() {
             backgroundColor: Colors.cardBackground,
             borderTopWidth: 1,
             borderTopColor: Colors.border,
-            paddingBottom: 5,
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 5,
             paddingTop: 5,
-            height: 60,
+            height: 60 + (insets.bottom > 0 ? insets.bottom : 0),
           },
         }}>
         <Tabs.Screen

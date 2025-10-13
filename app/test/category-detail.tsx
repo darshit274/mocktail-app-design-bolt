@@ -271,7 +271,7 @@ export default function CategoryDetailScreen() {
         <View style={styles.contentContainer}>
           <View style={styles.questionsHeader}>
             <Text style={styles.sectionTitle}>
-              Questions ({content.length})
+              Quiz Available
             </Text>
             <View style={styles.languageToggle}>
               <TouchableOpacity
@@ -309,21 +309,26 @@ export default function CategoryDetailScreen() {
             </View>
           </View>
 
+          {/* Quiz Info Card */}
+          <View style={styles.quizInfoCard}>
+            <View style={styles.quizInfoRow}>
+              <FileText size={20} color={Colors.primary} />
+              <Text style={styles.quizInfoLabel}>Total Questions</Text>
+              <Text style={styles.quizInfoValue}>{content.length}</Text>
+            </View>
+            <View style={styles.quizInfoRow}>
+              <Play size={20} color={Colors.primary} />
+              <Text style={styles.quizInfoLabel}>Language</Text>
+              <Text style={styles.quizInfoValue}>
+                {language === 'gujarati' ? 'ગુજરાતી' : 'English'}
+              </Text>
+            </View>
+          </View>
+
           <TouchableOpacity style={styles.startQuizButton} onPress={handleStartQuiz}>
             <Play size={20} color="white" />
             <Text style={styles.startQuizText}>Start Quiz</Text>
           </TouchableOpacity>
-
-          {content.map((question: any, index: number) => (
-            <View key={question.uuid} style={styles.questionPreview}>
-              <Text style={styles.questionNumber}>Q{index + 1}.</Text>
-              <Text style={styles.questionText}>
-                {language === 'gujarati'
-                  ? (question.question_text_gujarati || question.question_text || 'No question available')
-                  : (question.question_text || question.question_text_gujarati || 'No question available')}
-              </Text>
-            </View>
-          ))}
         </View>
       );
     }
@@ -601,6 +606,32 @@ const getStyles = (Colors: any) => StyleSheet.create({
   languageButtonTextActive: {
     color: 'white',
   },
+  quizInfoCard: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  quizInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  quizInfoLabel: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.text,
+    marginLeft: 12,
+  },
+  quizInfoValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
   startQuizButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -615,26 +646,6 @@ const getStyles = (Colors: any) => StyleSheet.create({
     fontWeight: '600',
     color: 'white',
     marginLeft: 8,
-  },
-  questionPreview: {
-    flexDirection: 'row',
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  questionNumber: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.primary,
-    marginRight: 8,
-    minWidth: 24,
-  },
-  questionText: {
-    flex: 1,
-    fontSize: 14,
-    color: Colors.text,
-    lineHeight: 20,
   },
   emptyContainer: {
     alignItems: 'center',

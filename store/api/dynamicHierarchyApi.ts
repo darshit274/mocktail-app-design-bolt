@@ -260,16 +260,22 @@ export const dynamicHierarchyApi = createApi({
         solutions: {
           id: number;
           uuid: string;
-          question_text: string;
+          question_text: string | { english: string; gujarati: string };
+          question_text_gujarati?: string;
           correct_answer: 'A' | 'B' | 'C' | 'D';
-          explanation?: string;
+          explanation?: string | { english: string; gujarati: string };
+          explanation_gujarati?: string;
           marks: number;
           options: {
-            A: string;
-            B: string;
-            C: string;
-            D: string;
+            A: string | { english: string; gujarati: string };
+            B: string | { english: string; gujarati: string };
+            C: string | { english: string; gujarati: string };
+            D: string | { english: string; gujarati: string };
           };
+          option_a_gujarati?: string;
+          option_b_gujarati?: string;
+          option_c_gujarati?: string;
+          option_d_gujarati?: string;
         }[];
         metadata: {
           total_questions: number;
@@ -278,12 +284,12 @@ export const dynamicHierarchyApi = createApi({
       };
     }, {
       categoryUuid: string;
-      language?: 'english' | 'gujarati';
+      language?: 'english' | 'gujarati' | 'both';
     }>({
-      query: ({ categoryUuid, language = 'english' }) => {
+      query: ({ categoryUuid, language = 'both' }) => {
         const queryParams = new URLSearchParams();
         queryParams.append('language', language);
-        
+
         return `dynamic/categories/${categoryUuid}/solutions?${queryParams.toString()}`;
       },
       providesTags: (result, error, { categoryUuid }) => [

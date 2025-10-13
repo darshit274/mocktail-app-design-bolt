@@ -40,12 +40,13 @@ export default function FreeInPaidTestsScreen() {
   };
 
   const handleStartQuiz = (category: FreeInPaidCategory) => {
-    // Navigate to category detail/quiz page
+    // Navigate to category detail page with proper parameters
     router.push({
-      pathname: '/test/[categoryId]',
+      pathname: '/test/category-detail',
       params: {
-        categoryId: category.uuid,
-        testType: 'free-in-paid',
+        categoryUuid: category.uuid,
+        categoryName: category.name,
+        seriesUuid: category.series.uuid,
       },
     });
   };
@@ -119,7 +120,9 @@ export default function FreeInPaidTestsScreen() {
       {/* Breadcrumb Path */}
       <View style={[styles.breadcrumbContainer, { backgroundColor: Colors.light }]}>
         <Text style={[styles.breadcrumbText, { color: Colors.textSubtle }]} numberOfLines={1}>
-          {category.breadcrumb}
+          {t.language === 'gujarati' && category.breadcrumb_gujarati
+            ? category.breadcrumb_gujarati
+            : category.breadcrumb}
         </Text>
       </View>
 
