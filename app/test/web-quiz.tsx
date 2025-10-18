@@ -5,8 +5,8 @@
  * Purpose: Main quiz screen with question navigation and submission
  */
 
-import React, { useEffect } from 'react';
-import { View, ScrollView, Alert, ActivityIndicator, Text } from 'react-native';
+import React, { useEffect, useCallback } from 'react';
+import { View, ScrollView, Alert, ActivityIndicator, Text, BackHandler, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSelector } from 'react-redux';
@@ -32,9 +32,13 @@ import {
   NegativeMarkingModal,
   SubmitConfirmationModal,
 } from '@/components/quiz';
+import { LoadingState, ErrorState } from '@/components/shared';
+import logger from '@/utils/logger';
+
+const quizLogger = logger.createLogger('WebQuiz');
 
 export default function WebQuizScreen() {
-  console.log('🌐 Web Quiz Screen Component Mounted');
+  quizLogger.info('Web Quiz Screen Component Mounted');
 
   // Route params
   const params = useLocalSearchParams();
@@ -51,6 +55,12 @@ export default function WebQuizScreen() {
 
   // Quiz state (custom hook)
   const quizState = useQuizState();
+
+  // State for test duration (null until loaded from API)
+  const [testDurationSeconds, setTestDurationSeconds] = React.useState<number | null>(null);
+
+  // State for exit confirmation
+  const [showExitConfirmation, setShowExitConfirmation] = React.useState(false);
 
   // API hooks
   const [submitQuizWeb, { isLoading: submittingWebQuiz }] = useSubmitQuizWebMutation();
@@ -70,35 +80,46 @@ export default function WebQuizScreen() {
   // Load questions when data arrives
   useEffect(() => {
     if (questionsData?.success && questionsData.data.questions) {
-      console.log('🌐 Loading questions from WEB API');
+      quizLogger.info('Loading questions from WEB API');
       const questionsList = transformQuestions(questionsData.data.questions);
       const category = questionsData.data.category;
 
       quizState.setQuestions(questionsList);
-      console.log('✅ Web Quiz initialized with', questionsList.length, 'questions');
+      quizLogger.info('Web Quiz initialized', { questionCount: questionsList.length });
+
+      // Set test duration from API (convert minutes to seconds)
+      const durationMinutes = category?.test_duration_minutes || 60;
+      const durationSeconds = durationMinutes * 60;
+      setTestDurationSeconds(durationSeconds);
+      quizLogger.info('Test duration set', { minutes: durationMinutes, seconds: durationSeconds });
 
       // Show language selection first
       quizState.setShowLanguageSelection(true);
 
       // Check for negative marking
       if (category?.negative_marking_enabled) {
-        console.log('⚠️ Negative marking enabled:', category.negative_marks_per_wrong || 0.25);
+        quizLogger.warn('Negative marking enabled', {
+          negativeMarksPerWrong: category.negative_marks_per_wrong || 0.25
+        });
         quizState.setNegativeMarkingEnabled(true);
         quizState.setNegativeMarksPerWrong(category.negative_marks_per_wrong || 0.25);
       }
     }
   }, [questionsData]);
 
-  // Timer hook with auto-submit
+  // Timer hook (uses dynamic test duration from API)
   const timer = useQuizTimer({
-    initialTime: 3600, // 60 minutes
-    onTimeUp: handleSubmitQuiz,
-    enabled: quizState.quizStarted && quizState.questions.length > 0,
+    initialTime: testDurationSeconds,
+    onTimeUp: () => {
+      // This will call handleSubmitQuiz when defined
+      handleSubmitQuiz();
+    },
+    enabled: quizState.quizStarted && quizState.questions.length > 0 && testDurationSeconds !== null,
   });
 
   // Submit quiz handler
-  async function handleSubmitQuiz() {
-    console.log('🌐 Submit Quiz clicked');
+  const handleSubmitQuiz = React.useCallback(async () => {
+    quizLogger.info('Submit Quiz clicked');
 
     // Get user UUID
     let userUuid = user?.uuid;
@@ -109,7 +130,7 @@ export default function WebQuizScreen() {
           const parsedUser = JSON.parse(storedUser);
           userUuid = parsedUser.uuid || parsedUser.id;
         } catch (e) {
-          console.error('Failed to parse stored user:', e);
+          quizLogger.error('Failed to parse stored user', e);
         }
       }
     }
@@ -126,7 +147,7 @@ export default function WebQuizScreen() {
 
     try {
       quizState.setIsSubmitting(true);
-      console.log('🌐 Submitting quiz using WEB API');
+      quizLogger.info('Submitting quiz using WEB API');
 
       // Prepare answers - ONLY include answered questions
       const webApiAnswers = quizState.questions
@@ -151,13 +172,14 @@ export default function WebQuizScreen() {
       const result = await submitQuizWeb({
         userId: userUuid,
         testSeriesId: seriesUuid as string,
+        categoryUuid: categoryUuid as string, // ← ADDED: For test identification
         answers: webApiAnswers,
         totalQuestions: quizState.questions.length, // Send actual total questions count
-        totalTimeSpent: 3600 - timer.timeRemaining,
+        totalTimeSpent: testDurationSeconds - timer.timeRemaining, // Use actual test duration
         markedForReviewCount: markedForReviewCount,
       }).unwrap();
 
-      console.log('✅ Web Quiz submission successful:', result.data);
+      quizLogger.info('Web Quiz submission successful', { resultId: result.data.leaderboardEntryId });
 
       // Use backend-calculated values (DO NOT recalculate)
       const correctAnswers = result.data.correctAnswers;
@@ -168,7 +190,7 @@ export default function WebQuizScreen() {
       const percentage = result.data.percentage || 0;
       const passed = percentage >= 50;
 
-      console.log('📊 Quiz Results:', {
+      quizLogger.info('Quiz Results', {
         correctAnswers,
         wrongAnswers,
         unansweredQuestions,
@@ -198,12 +220,12 @@ export default function WebQuizScreen() {
         },
       });
     } catch (error) {
-      console.error('❌ Web Quiz submission failed:', error);
+      quizLogger.error('Web Quiz submission failed', error);
       Alert.alert('Error', 'Failed to submit quiz. Please try again.');
     } finally {
       quizState.setIsSubmitting(false);
     }
-  }
+  }, [user, seriesUuid, categoryUuid, categoryName, quizState, submitQuizWeb, timer.timeRemaining, testDurationSeconds]);
 
   // Handlers
   const handleSelectQuestion = (index: number) => {
@@ -237,14 +259,37 @@ export default function WebQuizScreen() {
     quizState.setShowSubmitConfirmation(true);
   };
 
+  // Handle back button press (show confirmation if quiz started)
+  const handleBackPress = useCallback(() => {
+    if (quizState.quizStarted && !quizState.isSubmitting && !submittingWebQuiz) {
+      setShowExitConfirmation(true);
+      return true; // Prevent default back action
+    }
+    return false; // Allow default back action
+  }, [quizState.quizStarted, quizState.isSubmitting, submittingWebQuiz]);
+
+  // Handle exit confirmation
+  const handleConfirmExit = useCallback(() => {
+    setShowExitConfirmation(false);
+    router.back();
+  }, []);
+
+  const handleCancelExit = useCallback(() => {
+    setShowExitConfirmation(false);
+  }, []);
+
+  // Hardware back button listener (Android)
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+
+    return () => backHandler.remove();
+  }, [handleBackPress]);
+
   // Loading state
   if (loadingQuestions) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading questions...</Text>
-        </View>
+        <LoadingState message="Loading questions..." Colors={Colors} fullScreen />
       </SafeAreaView>
     );
   }
@@ -253,9 +298,14 @@ export default function WebQuizScreen() {
   if (questionsError || !questionsData?.success) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Failed to load questions</Text>
-        </View>
+        <ErrorState
+          title="Failed to load questions"
+          message="Unable to fetch quiz questions. Please try again."
+          onRetry={() => router.back()}
+          retryText="Go Back"
+          Colors={Colors}
+          fullScreen
+        />
       </SafeAreaView>
     );
   }
@@ -264,9 +314,14 @@ export default function WebQuizScreen() {
   if (!quizState.questions.length) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No questions available</Text>
-        </View>
+        <ErrorState
+          title="No questions available"
+          message="This quiz doesn't have any questions yet."
+          onRetry={() => router.back()}
+          retryText="Go Back"
+          Colors={Colors}
+          fullScreen
+        />
       </SafeAreaView>
     );
   }
@@ -341,13 +396,50 @@ export default function WebQuizScreen() {
         Colors={Colors}
       />
 
+      {/* Exit Confirmation Modal */}
+      <Modal
+        visible={showExitConfirmation}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelExit}
+      >
+        <View style={exitModalStyles.overlay}>
+          <View style={[exitModalStyles.modal, { backgroundColor: Colors.cardBackground }]}>
+            <Text style={[exitModalStyles.title, { color: Colors.textPrimary }]}>
+              Exit Test?
+            </Text>
+            <Text style={[exitModalStyles.message, { color: Colors.textSecondary }]}>
+              Are you sure you want to close the test? Your progress will not be saved.
+            </Text>
+            <View style={exitModalStyles.buttonContainer}>
+              <TouchableOpacity
+                style={[exitModalStyles.button, exitModalStyles.cancelButton, { backgroundColor: Colors.cardBackground, borderColor: Colors.border }]}
+                onPress={handleCancelExit}
+              >
+                <Text style={[exitModalStyles.cancelButtonText, { color: Colors.textPrimary }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[exitModalStyles.button, exitModalStyles.confirmButton, { backgroundColor: Colors.danger }]}
+                onPress={handleConfirmExit}
+              >
+                <Text style={exitModalStyles.confirmButtonText}>
+                  Exit Test
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Header */}
       <QuizHeader
         title={categoryName as string || 'Quiz'}
         timeRemaining={timer.timeRemaining}
         formatTime={timer.formatTime}
         isTimeLow={timer.isTimeLow}
-        onBack={() => router.back()}
+        onBack={handleBackPress}
         onGridOpen={() => quizState.setShowGrid(true)}
         Colors={Colors}
       />
@@ -393,3 +485,61 @@ export default function WebQuizScreen() {
     </SafeAreaView>
   );
 }
+
+// Exit Confirmation Modal Styles
+const exitModalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modal: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  message: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    borderWidth: 1,
+  },
+  confirmButton: {},
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+});

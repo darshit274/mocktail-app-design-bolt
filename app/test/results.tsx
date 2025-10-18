@@ -155,7 +155,15 @@ export default function TestResultsScreen() {
               correctCount={resultsData.correctCount}
               incorrectCount={resultsData.incorrectCount}
               unansweredCount={resultsData.unansweredCount}
+              totalQuestions={resultsData.totalQuestions}
+              attempted={resultsData.attempted}
+              accuracy={resultsData.accuracy}
               score={resultsData.score}
+              scoreWithNegativeMarking={resultsData.scoreWithNegativeMarking}
+              rank={resultsData.rank}
+              totalUsers={resultsData.totalUsers}
+              percentile={resultsData.percentile}
+              totalTimeTaken={resultsData.totalTimeTaken}
               t={t}
               Colors={Colors}
             />

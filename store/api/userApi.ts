@@ -187,10 +187,42 @@ export const userApi = createApi({
       },
       { page?: number; limit?: number }
     >({
-      query: ({ page = 1, limit = 10 }) => ({
-        url: '/profile/profile/test-history',
+      query: ({ page = 1, limit = 100 }) => ({
+        url: '/test-history',
         params: { page, limit },
       }),
+      transformResponse: (response: any) => {
+        // Backend returns: { data: { history: [...], pagination: {...} } }
+        // Transform to match frontend format
+        const sessions = response.data.history.map((item: any) => ({
+          id: item.latestSessionId,
+          uuid: item.categoryUuid || item.testUuid,
+          test: {
+            id: item.latestSessionId,
+            uuid: item.categoryUuid || item.testUuid,
+            title: item.testName,
+            duration_minutes: 0,
+            total_marks: item.totalQuestions || 0,
+          },
+          start_time: item.completedAt,
+          completed_at: item.completedAt,
+          time_taken: 0,
+          score: item.latestScore || 0,
+          total_marks: item.totalQuestions || 0,
+          percentage: item.latestPercentage || 0,
+          correct_answers: 0,
+          wrong_answers: 0,
+          unanswered: 0,
+        }));
+
+        return {
+          success: true,
+          data: {
+            sessions,
+            pagination: response.data.pagination,
+          },
+        };
+      },
       providesTags: ['TestHistory'],
     }),
 
@@ -217,6 +249,100 @@ export const userApi = createApi({
       }),
       providesTags: ['Dashboard'],
     }),
+
+    // Get test attempts for a specific test/category
+    getTestAttempts: builder.query<
+      {
+        success: boolean;
+        data: {
+          testId: string;
+          testName: string;
+          testUuid: string;
+          totalAttempts: number;
+          attempts: Array<{
+            attemptNumber: number;
+            sessionId: number;
+            completedAt: string;
+            score: number;
+            percentage: number;
+            totalQuestions: number;
+            attempted: number;
+            correct: number;
+            wrong: number;
+            unanswered: number;
+            timeTaken: string;
+          }>;
+        };
+      },
+      string
+    >({
+      query: (categoryUuid) => ({
+        url: `/test-history/test/${categoryUuid}/attempts`,
+        method: 'GET',
+      }),
+      providesTags: ['TestHistory'],
+    }),
+
+    // Get session details by sessionId
+    getSessionDetails: builder.query<
+      {
+        success: boolean;
+        message: string;
+        data: {
+          sessionId: number;
+          testId: number;
+          testName: string;
+          testUuid: string;
+          categoryName: string;
+          completedAt: string;
+          totalQuestions: number;
+          attempted: number;
+          correct: number;
+          wrong: number;
+          notAttempted: number;
+          markedForReview: number;
+          totalMarks: number;
+          obtainedMarks: number;
+          negativeMarks: number;
+          finalScore: number;
+          percentage: number;
+          accuracy: number;
+          timeSpent: number;
+        };
+      },
+      string | number
+    >({
+      query: (sessionId) => ({
+        url: `/test-history/${sessionId}`,
+        method: 'GET',
+      }),
+      providesTags: ['TestHistory'],
+    }),
+
+    // Get user's rank and percentile
+    getUserRank: builder.query<
+      {
+        success: boolean;
+        message: string;
+        data: {
+          rank: number;
+          totalScore: number;
+          testsCompleted: number;
+          bestScore?: number;
+          bestPercentage?: number;
+          percentile: number;
+          totalUsers: number;
+          dataSource: string;
+        };
+      },
+      void
+    >({
+      query: () => ({
+        url: '/leaderboard/my-rank',
+        method: 'GET',
+      }),
+      providesTags: ['TestHistory'],
+    }),
   }),
 });
 
@@ -226,4 +352,7 @@ export const {
   useGetTestHistoryQuery,
   useGetSubscriptionsQuery,
   useGetDashboardStatsQuery,
+  useGetTestAttemptsQuery,
+  useGetSessionDetailsQuery,
+  useGetUserRankQuery,
 } = userApi;

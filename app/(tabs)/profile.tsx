@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Settings, Bell, Shield, CircleHelp as HelpCircle, LogOut, ChevronRight, Trophy, BookOpen, Clock, Target, Star, Download, Globe, Moon } from 'lucide-react-native';
+import { User, Settings, LogOut, ChevronRight, BookOpen, Globe, Moon } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { getTheme } from '@/theme';
@@ -15,41 +15,28 @@ import { userApi } from '@/store/api/userApi';
 import { authApi } from '@/store/api/authApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AUTH_CONFIG } from '@/config/constants';
+import logger from '@/utils/logger';
+
+const profileLogger = logger.createLogger('Profile');
 
 export default function ProfileScreen() {
-  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
-  const { isDarkMode, theme, toggleTheme } = useTheme();
-  const { t, language } = useLanguage();
+  const { theme } = useTheme();
+  const { t } = useLanguage();
   const Colors = getTheme(theme);
   const dispatch = useDispatch();
-  
+
   const { data: profileData, isLoading, error } = useGetProfileQuery();
   const userProfile = profileData?.data;
-  const userStats = userProfile?.stats || {
-    testsCompleted: 0,
-    totalScore: 0,
-    averageScore: 0,
-    rank: 0,
-    studyHours: 0,
-    streak: 0,
-  };
-  
+
   // Log profile data for debugging
   React.useEffect(() => {
     if (profileData) {
-      console.log('Profile Data:', profileData);
+      profileLogger.info('Profile data loaded', { userId: userProfile?.id });
     }
     if (error) {
-      console.error('Profile Error:', error);
+      profileLogger.error('Profile error', error);
     }
   }, [profileData, error]);
-
-  const achievements = [
-    { id: 1, title: 'First Test', icon: Trophy, color: '#F59E0B', unlocked: true },
-    { id: 2, title: 'Score Master', icon: Target, color: '#10B981', unlocked: true },
-    { id: 3, title: 'Study Streak', icon: Clock, color: '#3B82F6', unlocked: true },
-    { id: 4, title: 'Top Performer', icon: Star, color: '#8B5CF6', unlocked: false },
-  ];
 
   const menuItems = [
     {
@@ -58,16 +45,6 @@ export default function ProfileScreen() {
       icon: User,
       route: '/account-settings',
       description: 'Manage your personal information',
-    },
-    {
-      id: 2,
-      title: t.profile.notifications,
-      icon: Bell,
-      route: '/notifications',
-      description: 'Configure notification preferences',
-      hasSwitch: true,
-      switchValue: notificationsEnabled,
-      onSwitchChange: setNotificationsEnabled,
     },
     {
       id: 3,
@@ -84,27 +61,6 @@ export default function ProfileScreen() {
       icon: Moon,
       route: '/theme-selector',
       description: 'Choose your preferred color scheme',
-    },
-    {
-      id: 5,
-      title: 'Downloaded PDFs',
-      icon: Download,
-      route: '/downloads',
-      description: 'Manage your downloaded content',
-    },
-    {
-      id: 6,
-      title: t.profile.privacy,
-      icon: Shield,
-      route: '/privacy',
-      description: 'Privacy settings and security',
-    },
-    {
-      id: 7,
-      title: t.profile.help,
-      icon: HelpCircle,
-      route: '/help',
-      description: 'Get help and contact support',
     },
   ];
 
@@ -125,28 +81,28 @@ export default function ProfileScreen() {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            console.log('Logout confirmed');
+            profileLogger.info('Logout confirmed');
             try {
               // Clear auth token from storage
-              console.log('Clearing token from AsyncStorage...');
+              profileLogger.info('Clearing token from AsyncStorage');
               await AsyncStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-              
+
               // Clear user data from AsyncStorage if any
               await AsyncStorage.removeItem('user');
-              
+
               // Clear Redux state
-              console.log('Clearing Redux state...');
+              profileLogger.info('Clearing Redux state');
               dispatch(clearAuth());
-              
+
               // Clear API cache
               dispatch(userApi.util.resetApiState());
               dispatch(authApi.util.resetApiState());
-              
+
               // Navigate to login - using push to ensure navigation
-              console.log('Navigating to login screen...');
+              profileLogger.info('Navigating to login screen');
               router.push('/(auth)/login');
             } catch (error) {
-              console.error('Error during logout:', error);
+              profileLogger.error('Error during logout', error);
               Alert.alert('Error', 'Failed to logout. Please try again.');
             }
           }
@@ -196,68 +152,6 @@ export default function ProfileScreen() {
             <Settings size={20} color={Colors.white} />
           </TouchableOpacity>
         </LinearGradient>
-
-        {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <BookOpen size={24} color={Colors.primaryLight} />
-              <Text style={styles.statNumber}>{userStats.testsCompleted}</Text>
-              <Text style={styles.statLabel}>Tests Completed</Text>
-            </View>
-            
-            <View style={styles.statCard}>
-              <Trophy size={24} color={Colors.warning} />
-              <Text style={styles.statNumber}>#{userStats.rank}</Text>
-              <Text style={styles.statLabel}>Current Rank</Text>
-            </View>
-            
-            <View style={styles.statCard}>
-              <Target size={24} color={Colors.success} />
-              <Text style={styles.statNumber}>{userStats.averageScore}%</Text>
-              <Text style={styles.statLabel}>Average Score</Text>
-            </View>
-            
-            <View style={styles.statCard}>
-              <Clock size={24} color="#8B5CF6" />
-              <Text style={styles.statNumber}>{userStats.studyHours}h</Text>
-              <Text style={styles.statLabel}>Study Hours</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Achievements */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Achievements</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.achievementContainer} >
-            {achievements.map((achievement) => (
-              <View 
-                key={achievement.id} 
-                style={[
-                  styles.achievementCard,
-                  !achievement.unlocked && styles.achievementCardLocked
-                ]}
-              >
-                <View style={[
-                  styles.achievementIcon,
-                  { backgroundColor: `${achievement.color}20` },
-                  !achievement.unlocked && styles.achievementIconLocked
-                ]}>
-                  <achievement.icon 
-                    size={24} 
-                    color={achievement.unlocked ? achievement.color : '#9CA3AF'} 
-                  />
-                </View>
-                <Text style={[
-                  styles.achievementTitle,
-                  !achievement.unlocked && styles.achievementTitleLocked
-                ]}>
-                  {achievement.title}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
@@ -389,38 +283,6 @@ const getStyles = (Colors: any) => StyleSheet.create({
   editButton: {
     padding: 8,
   },
-  statsContainer: {
-    padding: 20,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statCard: {
-    width: '47%',
-    backgroundColor: Colors.cardBackground,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.textSubtle,
-    textAlign: 'center',
-  },
   section: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -430,45 +292,6 @@ const getStyles = (Colors: any) => StyleSheet.create({
     fontWeight: '600',
     color: Colors.textPrimary,
     marginBottom: 16,
-  },
-  achievementCard: {
-    backgroundColor: Colors.cardBackground,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginRight: 12,
-    width: 100,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  achievementCardLocked: {
-    opacity: 0.6,
-  },
-  achievementIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  achievementIconLocked: {
-    backgroundColor: Colors.light,
-  },
-  achievementContainer: {
-   paddingBottom: 24,
-  },
-  achievementTitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  achievementTitleLocked: {
-    color: Colors.gray400,
   },
   menuItem: {
     backgroundColor: Colors.cardBackground,

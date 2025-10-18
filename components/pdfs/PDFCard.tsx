@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { FileText, Calendar, Download, Star, Eye, ShoppingCart, Lock } from 'lucide-react-native';
+import { FileText, Calendar, Eye, ShoppingCart, Lock } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useCheckPDFAccessQuery } from '@/store/api/pdfPaymentApi';
 import { getTheme } from '@/theme';
@@ -16,18 +16,15 @@ interface PDFCardProps {
     price?: number;
     currency?: string;
     is_free?: boolean;
-    file_size: number;
     original_filename: string;
-    download_count: number;
     created_at: string;
     tags?: string[];
   };
   onPreview: (pdfId: string) => void;
-  formatFileSize: (bytes: number) => string;
   formatDate: (dateString: string) => string;
 }
 
-export default function PDFCard({ pdf, onPreview, formatFileSize, formatDate }: PDFCardProps) {
+export default function PDFCard({ pdf, onPreview, formatDate }: PDFCardProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const Colors = getTheme(theme);
@@ -127,26 +124,9 @@ export default function PDFCard({ pdf, onPreview, formatFileSize, formatDate }: 
               )}
             </View>
             <View style={styles.pdfMeta}>
-              <Text style={styles.pdfSize}>{formatFileSize(pdf.file_size)}</Text>
-              <Text style={styles.pdfSeparator}>•</Text>
               <Text style={styles.pdfPages}>{pdf.original_filename}</Text>
-              {isPremium && (
-                <>
-                  <Text style={styles.pdfSeparator}>•</Text>
-                  <View style={styles.premiumBadge}>
-                    <Text style={styles.premiumText}>
-                      {hasAccess ? 'Owned' : 'Premium'}
-                    </Text>
-                  </View>
-                </>
-              )}
             </View>
           </View>
-        </View>
-
-        <View style={styles.ratingContainer}>
-          <Star size={14} color={Colors.warning} fill={Colors.warning} />
-          <Text style={styles.rating}>4.5</Text>
         </View>
       </View>
 
@@ -174,10 +154,6 @@ export default function PDFCard({ pdf, onPreview, formatFileSize, formatDate }: 
 
       {/* Stats */}
       <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Download size={14} color={Colors.textSubtle} />
-          <Text style={styles.statText}>{pdf.download_count} downloads</Text>
-        </View>
         <View style={styles.statItem}>
           <Calendar size={14} color={Colors.textSubtle} />
           <Text style={styles.statText}>{formatDate(pdf.created_at)}</Text>
@@ -243,39 +219,9 @@ const getStyles = (Colors: any) => StyleSheet.create({
     alignItems: 'center',
     flexWrap: 'wrap',
   },
-  pdfSize: {
-    fontSize: 12,
-    color: Colors.textSubtle,
-  },
   pdfPages: {
     fontSize: 12,
     color: Colors.textSubtle,
-  },
-  pdfSeparator: {
-    fontSize: 12,
-    color: Colors.textSubtle,
-    marginHorizontal: 6,
-  },
-  premiumBadge: {
-    backgroundColor: Colors.warning,
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  premiumText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.white,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rating: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.text,
-    marginLeft: 4,
   },
   priceContainer: {
     flexDirection: 'row',

@@ -20,11 +20,18 @@ export interface UseQuizTimerProps {
 }
 
 export const useQuizTimer = ({
-  initialTime = 3600,
+  initialTime,
   onTimeUp,
   enabled
 }: UseQuizTimerProps): UseQuizTimerReturn => {
-  const [timeRemaining, setTimeRemaining] = useState(initialTime);
+  const [timeRemaining, setTimeRemaining] = useState(initialTime || 0);
+
+  // Update timer when initialTime changes (e.g., from API)
+  useEffect(() => {
+    if (initialTime !== null && initialTime !== undefined) {
+      setTimeRemaining(initialTime);
+    }
+  }, [initialTime]);
 
   // Timer countdown effect
   useEffect(() => {

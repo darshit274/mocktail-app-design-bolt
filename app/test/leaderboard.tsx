@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trophy, Medal, Award, TrendingUp, Calendar, ChevronLeft, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,10 @@ import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGetTestSeriesLeaderboardWebQuery } from '@/store/api/webCompatibleApi';
+import { LeaderboardItem } from '@/components/leaderboard';
+import logger from '@/utils/logger';
+
+const leaderboardLogger = logger.createLogger('Leaderboard');
 
 export default function TestLeaderboardScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState('This Test');
@@ -15,11 +19,11 @@ export default function TestLeaderboardScreen() {
   const { t } = useLanguage();
   const Colors = getTheme(theme);
   const params = useLocalSearchParams();
-  console.log('🏆 Leaderboard params:', params);
+  leaderboardLogger.debug('Leaderboard params', params);
 
   // Get the test series UUID from params (should come from navigation)
   const testSeriesUuid = params.seriesUuid || params.categoryUuid || '4d7c05cd-f70e-4717-a631-5f1e85756a5c';
-  console.log('🏆 Using test series UUID for leaderboard:', testSeriesUuid);
+  leaderboardLogger.info('Using test series UUID for leaderboard', { testSeriesUuid });
 
   // Fetch leaderboard using web-compatible API (EXACT SAME AS WEB)
   const {
@@ -32,21 +36,24 @@ export default function TestLeaderboardScreen() {
     { skip: !testSeriesUuid }
   );
 
-  const periods = [
+  // Memoize periods array to prevent recreation
+  const periods = useMemo(() => [
     { key: 'This Test', label: t.leaderboard.periods.thisTest },
     { key: 'Weekly', label: t.leaderboard.periods.weekly },
     { key: 'Monthly', label: t.leaderboard.periods.monthly },
     { key: 'All Time', label: t.leaderboard.periods.allTime }
-  ];
+  ], [t]);
 
-  const testInfo = {
+  // Memoize test info
+  const testInfo = useMemo(() => ({
     title: 'PSI Mock Test 1',
     totalParticipants: 1250,
     averageScore: 68.5,
     completionRate: 89.2
-  };
+  }), []);
 
-  const topPerformers = [
+  // Memoize top performers array (would typically come from API)
+  const topPerformers = useMemo(() => [
     {
       id: 1,
       name: 'Rajesh Kumar',
@@ -74,9 +81,10 @@ export default function TestLeaderboardScreen() {
       accuracy: 89.0,
       rank: 3,
     },
-  ];
+  ], []);
 
-  const leaderboardData = [
+  // Memoize leaderboard data array (would typically come from API)
+  const leaderboardData = useMemo(() => [
     {
       id: 4,
       name: 'Sneha Reddy',
@@ -122,46 +130,61 @@ export default function TestLeaderboardScreen() {
       accuracy: 78.0,
       rank: 8,
     },
-  ];
+  ], []);
 
-  const currentUserRank = {
+  // Memoize current user rank
+  const currentUserRank = useMemo(() => ({
     name: t.leaderboard.you,
     score: 72,
     rank: 15,
     timeTaken: 6300,
     accuracy: 72.0,
     percentile: 85.2,
-  };
+  }), [t]);
 
-  const formatTime = (seconds: number) => {
+  // Memoize formatTime helper for podium display
+  const formatTime = useCallback((seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
     return `${minutes}m`;
-  };
+  }, []);
 
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Crown size={24} color={Colors.premiumText} />;
-      case 2:
-        return <Medal size={24} color={Colors.premiumBadge} />;
-      case 3:
-        return <Award size={24} color={Colors.premiumText} />;
-      default:
-        return <Text style={styles.rankNumber}>{rank}</Text>;
-    }
-  };
+  // Memoize styles to prevent recalculation on every render
+  const styles = useMemo(() => getStyles(Colors), [Colors]);
 
-  const styles = getStyles(Colors);
+  // FlatList optimizations
+  const keyExtractor = useCallback((item: any, index: number) =>
+    item.userId?.toString() || index.toString(), []
+  );
 
-  return (
-    <SafeAreaView style={styles.container}>
+  // Fixed height for getItemLayout optimization
+  const ITEM_HEIGHT = 80;
+  const getItemLayout = useCallback((data: any, index: number) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  }), []);
+
+  // Render leaderboard item using extracted component
+  const renderLeaderboardItem = useCallback(({ item, index }: { item: any, index: number }) => {
+    return (
+      <LeaderboardItem
+        item={item}
+        index={index}
+        Colors={Colors}
+      />
+    );
+  }, [Colors]);
+
+  // Render list header with podium and stats
+  const renderListHeader = useCallback(() => (
+    <>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
@@ -199,110 +222,127 @@ export default function TestLeaderboardScreen() {
         </LinearGradient>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Period Selection */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.periodContainer}
-        >
-          {periods.map((period) => (
-            <TouchableOpacity
-              key={period.key}
-              style={[
-                styles.periodChip,
-                selectedPeriod === period.key && styles.periodChipActive
-              ]}
-              onPress={() => setSelectedPeriod(period.key)}
+      {/* Period Selection */}
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.periodContainer}
+        data={periods}
+        keyExtractor={(item) => item.key}
+        renderItem={({ item: period }) => (
+          <TouchableOpacity
+            style={[
+              styles.periodChip,
+              selectedPeriod === period.key && styles.periodChipActive
+            ]}
+            onPress={() => setSelectedPeriod(period.key)}
+          >
+            <Text style={[
+              styles.periodText,
+              selectedPeriod === period.key && styles.periodTextActive
+            ]}>
+              {period.label}
+            </Text>
+          </TouchableOpacity>
+        )}
+      />
+
+      {/* Top 3 Performers */}
+      <View style={styles.topPerformersContainer}>
+        <Text style={styles.sectionTitle}>{t.leaderboard.topPerformers}</Text>
+        <View style={styles.podiumContainer}>
+          {/* 2nd Place */}
+          <View style={styles.podiumItem}>
+            <LinearGradient
+              colors={[Colors.primary, Colors.accent]}
+              style={[styles.podiumRank, styles.secondPlace]}
             >
-              <Text style={[
-                styles.periodText,
-                selectedPeriod === period.key && styles.periodTextActive
-              ]}>
-                {period.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+              <Image source={{ uri: topPerformers[1].avatar }} style={styles.podiumAvatar} />
+              <Medal size={20} color={Colors.premiumBadge} />
+            </LinearGradient>
+            <Text style={styles.podiumName}>{topPerformers[1].name}</Text>
+            <Text style={styles.podiumScore}>{topPerformers[1].score}%</Text>
+            <Text style={styles.podiumTime}>{formatTime(topPerformers[1].timeTaken)}</Text>
+          </View>
 
-        {/* Top 3 Performers */}
-        <View style={styles.topPerformersContainer}>
-          <Text style={styles.sectionTitle}>{t.leaderboard.topPerformers}</Text>
-          <View style={styles.podiumContainer}>
-            {/* 2nd Place */}
-            <View style={styles.podiumItem}>
-              <LinearGradient
-                colors={[Colors.primary, Colors.accent]}
-                style={[styles.podiumRank, styles.secondPlace]}
-              >
-                <Image source={{ uri: topPerformers[1].avatar }} style={styles.podiumAvatar} />
-                <Medal size={20} color={Colors.premiumBadge} />
-              </LinearGradient>
-              <Text style={styles.podiumName}>{topPerformers[1].name}</Text>
-              <Text style={styles.podiumScore}>{topPerformers[1].score}%</Text>
-              <Text style={styles.podiumTime}>{formatTime(topPerformers[1].timeTaken)}</Text>
-            </View>
+          {/* 1st Place */}
+          <View style={[styles.podiumItem, styles.firstPlaceItem]}>
+            <LinearGradient
+              colors={[Colors.primary, Colors.chip]}
+              style={[styles.podiumRank, styles.firstPlace]}
+            >
+              <Image source={{ uri: topPerformers[0].avatar }} style={styles.podiumAvatar} />
+              <Crown size={24} color={Colors.premiumText} />
+            </LinearGradient>
+            <Text style={styles.podiumName}>{topPerformers[0].name}</Text>
+            <Text style={styles.podiumScore}>{topPerformers[0].score}%</Text>
+            <Text style={styles.podiumTime}>{formatTime(topPerformers[0].timeTaken)}</Text>
+          </View>
 
-            {/* 1st Place */}
-            <View style={[styles.podiumItem, styles.firstPlaceItem]}>
-              <LinearGradient
-                colors={[Colors.primary, Colors.chip]}
-                style={[styles.podiumRank, styles.firstPlace]}
-              >
-                <Image source={{ uri: topPerformers[0].avatar }} style={styles.podiumAvatar} />
-                <Crown size={24} color={Colors.premiumText} />
-              </LinearGradient>
-              <Text style={styles.podiumName}>{topPerformers[0].name}</Text>
-              <Text style={styles.podiumScore}>{topPerformers[0].score}%</Text>
-              <Text style={styles.podiumTime}>{formatTime(topPerformers[0].timeTaken)}</Text>
-            </View>
-
-            {/* 3rd Place */}
-            <View style={styles.podiumItem}>
-              <LinearGradient
-                colors={[Colors.primary, Colors.textLink]}
-                style={[styles.podiumRank, styles.thirdPlace]}
-              >
-                <Image source={{ uri: topPerformers[2].avatar }} style={styles.podiumAvatar} />
-                <Award size={20} color={Colors.primaryLight} />
-              </LinearGradient>
-              <Text style={styles.podiumName}>{topPerformers[2].name}</Text>
-              <Text style={styles.podiumScore}>{topPerformers[2].score}%</Text>
-              <Text style={styles.podiumTime}>{formatTime(topPerformers[2].timeTaken)}</Text>
-            </View>
+          {/* 3rd Place */}
+          <View style={styles.podiumItem}>
+            <LinearGradient
+              colors={[Colors.primary, Colors.textLink]}
+              style={[styles.podiumRank, styles.thirdPlace]}
+            >
+              <Image source={{ uri: topPerformers[2].avatar }} style={styles.podiumAvatar} />
+              <Award size={20} color={Colors.primaryLight} />
+            </LinearGradient>
+            <Text style={styles.podiumName}>{topPerformers[2].name}</Text>
+            <Text style={styles.podiumScore}>{topPerformers[2].score}%</Text>
+            <Text style={styles.podiumTime}>{formatTime(topPerformers[2].timeTaken)}</Text>
           </View>
         </View>
+      </View>
 
-        {/* Your Rank */}
-        <View style={styles.yourRankContainer}>
-          <Text style={styles.sectionTitle}>{t.leaderboard.yourPerformance}</Text>
-          <LinearGradient
-            colors={[Colors.primaryExtraLight, Colors.white]}
-            style={styles.yourRankCard}
-          >
-            <View style={styles.rankInfo}>
-              <View style={styles.rankBadge}>
-                <Text style={styles.rankNumber}>{currentUserRank.rank}</Text>
-              </View>
-              <View style={styles.userInfo}>
-                <Text style={styles.userName}>{currentUserRank.name}</Text>
-                <Text style={styles.userStats}>
-                  {currentUserRank.accuracy}% {t.leaderboard.accuracy} • {formatTime(currentUserRank.timeTaken)}
-                </Text>
-              </View>
+      {/* Your Rank */}
+      <View style={styles.yourRankContainer}>
+        <Text style={styles.sectionTitle}>{t.leaderboard.yourPerformance}</Text>
+        <LinearGradient
+          colors={[Colors.primaryExtraLight, Colors.white]}
+          style={styles.yourRankCard}
+        >
+          <View style={styles.rankInfo}>
+            <View style={styles.rankBadge}>
+              <Text style={styles.rankNumber}>{currentUserRank.rank}</Text>
             </View>
-            <View style={styles.scoreInfo}>
-              <Text style={styles.userScore}>{currentUserRank.score}%</Text>
-
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{currentUserRank.name}</Text>
+              <Text style={styles.userStats}>
+                {currentUserRank.accuracy}% {t.leaderboard.accuracy} • {formatTime(currentUserRank.timeTaken)}
+              </Text>
             </View>
-          </LinearGradient>
-        </View>
+          </View>
+          <View style={styles.scoreInfo}>
+            <Text style={styles.userScore}>{currentUserRank.score}%</Text>
+          </View>
+        </LinearGradient>
+      </View>
 
-        {/* Full Leaderboard */}
-        <View style={styles.leaderboardContainer}>
-          <Text style={styles.sectionTitle}>{t.leaderboard.allRankings}</Text>
+      {/* Full Leaderboard Title */}
+      <View style={styles.leaderboardContainer}>
+        <Text style={styles.sectionTitle}>{t.leaderboard.allRankings}</Text>
+      </View>
+    </>
+  ), [Colors, t, testInfo, periods, selectedPeriod, topPerformers, currentUserRank, formatTime, styles, setSelectedPeriod]);
 
-          {loadingLeaderboard ? (
+  // Prepare data for FlatList
+  const leaderboardListData = useMemo(() => {
+    if (loadingLeaderboard || leaderboardError || !leaderboardResponse?.success || !leaderboardResponse.data) {
+      return [];
+    }
+    return leaderboardResponse.data;
+  }, [loadingLeaderboard, leaderboardError, leaderboardResponse]);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={leaderboardListData}
+        renderItem={renderLeaderboardItem}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={renderListHeader}
+        ListEmptyComponent={
+          loadingLeaderboard ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.primary} />
               <Text style={styles.loadingText}>Loading leaderboard...</Text>
@@ -314,39 +354,20 @@ export default function TestLeaderboardScreen() {
                 <Text style={styles.retryText}>Retry</Text>
               </TouchableOpacity>
             </View>
-          ) : leaderboardResponse?.success && leaderboardResponse.data?.length > 0 ? (
-            leaderboardResponse.data.map((user, index) => (
-              <View key={user.userId || index} style={styles.leaderboardItem}>
-                <View style={styles.rankInfo}>
-                  <View style={styles.rankBadge}>
-                    {getRankIcon(user.rank)}
-                  </View>
-                  {user.avatar ? (
-                    <Image source={{ uri: user.avatar }} style={styles.userAvatar} />
-                  ) : (
-                    <View style={[styles.userAvatar, { backgroundColor: Colors.primary }]}>
-                      <Text style={styles.avatarText}>{user.name.charAt(0).toUpperCase()}</Text>
-                    </View>
-                  )}
-                  <View style={styles.userInfo}>
-                    <Text style={styles.userName}>{user.name}</Text>
-                    <Text style={styles.userStats}>
-                      {user.percentage.toFixed(1)}% • {formatTime(user.timeTaken)}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.scoreInfo}>
-                  <Text style={styles.userScore}>{user.totalScore}</Text>
-                </View>
-              </View>
-            ))
           ) : (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No leaderboard data available</Text>
             </View>
-          )}
-        </View>
-      </ScrollView>
+          )
+        }
+        contentContainerStyle={{ paddingBottom: 24 }}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        initialNumToRender={10}
+        windowSize={10}
+        getItemLayout={getItemLayout}
+      />
     </SafeAreaView>
   );
 }

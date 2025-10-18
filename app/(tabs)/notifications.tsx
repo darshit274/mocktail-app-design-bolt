@@ -17,12 +17,15 @@ import { Bell, Clock, CheckCircle, AlertCircle, BookOpen } from 'lucide-react-na
 import { 
   useGetUserNotificationsQuery, 
   useMarkNotificationAsReadMutation,
-  NotificationItem 
+  NotificationItem
 } from '@/store/api/notificationsApi';
 import Toast from 'react-native-toast-message';
+import logger from '@/utils/logger';
+
+const notificationLogger = logger.createLogger('Notifications');
 
 export default function NotificationsScreen() {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const Colors = getTheme(theme);
   const { t } = useLanguage();
   const [page, setPage] = useState(1);
@@ -120,7 +123,10 @@ export default function NotificationsScreen() {
           // Handle navigation based on notification type and data
           if (item.data?.navigation) {
             // Navigate to specific screen
-            console.log('Navigate to:', item.data.navigation, item.data.navigationData);
+            notificationLogger.info('Navigate to notification target', {
+              navigation: item.data.navigation,
+              navigationData: item.data.navigationData
+            });
           }
         }}
       >

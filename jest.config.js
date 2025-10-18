@@ -9,11 +9,13 @@ module.exports = {
     '<rootDir>/.expo/',
   ],
   collectCoverageFrom: [
+    'components/**/*.{js,jsx,ts,tsx}',
     'store/**/*.{js,jsx,ts,tsx}',
     'hooks/**/*.{js,jsx,ts,tsx}',
     'app/**/*.{js,jsx,ts,tsx}',
     '!**/*.d.ts',
     '!**/node_modules/**',
+    '!**/index.{js,ts,tsx}', // Exclude barrel exports
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',

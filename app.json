@@ -9,14 +9,23 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mocktale.mocktaleacademy"
+      "bundleIdentifier": "com.mocktale.mocktaleacademy",
+      "buildNumber": "1.0.0"
     },
     "android": {
       "package": "com.mocktale.mocktaleacademy",
+      "versionCode": 1,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "enableProguardInReleaseBuilds": true,
+      "enableShrinkResourcesInReleaseBuilds": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/MockTale.jpg"
     },
     "plugins": [
       "expo-router",

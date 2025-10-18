@@ -8,6 +8,7 @@ import { baseQueryWithReauth } from './baseQuery';
 export interface WebQuizSubmissionRequest {
   userId: string;
   testSeriesId: string;
+  categoryUuid?: string; // ← ADDED: For test identification in history
   answers: Array<{
     questionId: number;
     selectedOption: 'A' | 'B' | 'C' | 'D' | null;

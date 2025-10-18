@@ -9,14 +9,21 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useGetPDFByIdQuery } from '@/store/api/pdfApi';
 import { useCheckPDFAccessQuery } from '@/store/api/pdfPaymentApi';
 import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
+import { LoadingState, ErrorState } from '@/components/shared';
 import { API_CONFIG } from '@/config/constants';
 import SecureBase64PDFViewer from '@/components/SecureBase64PDFViewer';
+import { formatDate } from '@/utils/dateFormatters';
+import { formatFileSize } from '@/utils/fileUtils';
+import logger from '@/utils/logger';
+
+const pdfLogger = logger.createLogger('PDFViewer');
+
 // Conditional import for expo-screen-capture
 let ScreenCapture: any = null;
 try {
   ScreenCapture = require('expo-screen-capture');
 } catch (error) {
-  console.warn('expo-screen-capture not available:', error);
+  pdfLogger.warn('expo-screen-capture not available', error);
 }
 
 export default function PDFViewerScreen() {
@@ -58,12 +65,13 @@ export default function PDFViewerScreen() {
         try {
           await ScreenCapture.preventScreenCaptureAsync();
           setIsSecure(true);
+          pdfLogger.info('Screenshot prevention activated');
         } catch (error) {
-          console.error('Failed to prevent screenshots:', error);
+          pdfLogger.error('Failed to prevent screenshots', error);
           setIsSecure(false);
         }
       } else if (!ScreenCapture) {
-        console.warn('Screenshot prevention not available - expo-screen-capture module not loaded');
+        pdfLogger.warn('Screenshot prevention not available - expo-screen-capture module not loaded');
         setIsSecure(false);
       }
     };
@@ -73,27 +81,12 @@ export default function PDFViewerScreen() {
     // Cleanup: Re-enable screenshots when leaving the screen
     return () => {
       if (Platform.OS !== 'web' && ScreenCapture) {
-        ScreenCapture.allowScreenCaptureAsync().catch(console.error);
+        ScreenCapture.allowScreenCaptureAsync().catch((error) =>
+          pdfLogger.error('Failed to re-enable screenshots', error)
+        );
       }
     };
   }, []);
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
 
   const handlePurchase = () => {
     if (!pdf) return;
@@ -136,10 +129,7 @@ export default function PDFViewerScreen() {
           </View>
 
           <View style={styles.viewerContainer}>
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primaryLight} />
-              <Text style={styles.loadingText}>Loading PDF...</Text>
-            </View>
+            <LoadingState message="Loading PDF..." Colors={Colors} />
           </View>
         </View>
       </SafeAreaView>
@@ -150,7 +140,7 @@ export default function PDFViewerScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -159,20 +149,15 @@ export default function PDFViewerScreen() {
           <Text style={styles.headerTitle}>Error</Text>
           <View style={styles.placeholder} />
         </View>
-        
-        <View style={styles.errorContainer}>
-          <BookOpen size={64} color={Colors.danger} />
-          <Text style={styles.errorTitle}>Failed to load PDF</Text>
-          <Text style={styles.errorDescription}>
-            {(error as any)?.data?.message || 'The PDF could not be loaded. Please try again.'}
-          </Text>
-          <TouchableOpacity 
-            style={styles.retryButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.retryButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
+
+        <ErrorState
+          title="Failed to load PDF"
+          message={(error as any)?.data?.message || 'The PDF could not be loaded. Please try again.'}
+          onRetry={() => router.back()}
+          retryText="Go Back"
+          Colors={Colors}
+          fullScreen
+        />
       </SafeAreaView>
     );
   }
@@ -292,11 +277,11 @@ export default function PDFViewerScreen() {
             pdfId={pdf.id}
             style={styles.pdf}
             onLoadComplete={(numberOfPages) => {
-              console.log(`PDF loaded with ${numberOfPages} pages`);
+              pdfLogger.info(`PDF loaded with ${numberOfPages} pages`);
               setTotalPages(numberOfPages);
             }}
             onError={(error) => {
-              console.error('PDF loading error:', error);
+              pdfLogger.error('PDF loading error', error);
               Alert.alert('Error', 'Failed to load PDF. Please try again.');
             }}
           />

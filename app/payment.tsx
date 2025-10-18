@@ -13,6 +13,9 @@ import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
 import { WebView } from 'react-native-webview';
 import { Modal } from 'react-native';
 import { API_CONFIG } from '@/config/constants';
+import logger from '@/utils/logger';
+
+const paymentLogger = logger.createLogger('Payment');
 
 export default function PaymentScreen() {
   const { theme } = useTheme();
@@ -89,13 +92,13 @@ export default function PaymentScreen() {
     razorpay_signature: string;
   }) => {
     if (!currentSubscriptionId) {
-      console.error('No subscription ID available for verification');
+      paymentLogger.error('No subscription ID available for verification');
       return;
     }
 
     try {
-      console.log('Verifying payment...', {
-        ...paymentData,
+      paymentLogger.info('Verifying payment', {
+        payment_id: paymentData.razorpay_payment_id,
         subscription_id: currentSubscriptionId
       });
 
@@ -104,7 +107,9 @@ export default function PaymentScreen() {
         subscription_id: currentSubscriptionId
       }).unwrap();
 
-      console.log('Payment verification successful:', verificationResult);
+      paymentLogger.info('Payment verification successful', {
+        paymentId: verificationResult.data.paymentId
+      });
 
       // Close WebView and show success
       setShowPaymentWebView(false);
@@ -124,7 +129,7 @@ export default function PaymentScreen() {
       );
 
     } catch (verificationError: any) {
-      console.error('Payment verification failed:', verificationError);
+      paymentLogger.error('Payment verification failed', verificationError);
 
       setShowPaymentWebView(false);
 
@@ -167,13 +172,16 @@ export default function PaymentScreen() {
     
     try {
       // Step 1: Create payment order
-      console.log('Creating payment order for series:', seriesId);
+      paymentLogger.info('Creating payment order', { seriesId });
       const orderResult = await createPaymentOrder({
         testSeriesId: seriesId,
         planType: 'test_series'
       }).unwrap();
 
-      console.log('Payment order created:', orderResult);
+      paymentLogger.info('Payment order created', {
+        orderId: orderResult.data.orderId,
+        subscriptionId: orderResult.data.subscriptionId
+      });
 
       // Store subscription ID for later verification
       setCurrentSubscriptionId(orderResult.data.subscriptionId);
@@ -181,14 +189,14 @@ export default function PaymentScreen() {
       // Step 2: Create Razorpay payment URL for web-based checkout
       const checkoutUrl = createRazorpayPaymentURL(orderResult.data);
 
-      console.log('Opening Razorpay in-app checkout:', checkoutUrl);
+      paymentLogger.info('Opening Razorpay in-app checkout');
 
       // Open the payment URL in WebView modal
       setPaymentUrl(checkoutUrl);
       setShowPaymentWebView(true);
 
     } catch (orderError: any) {
-      console.error('Failed to create payment order:', orderError);
+      paymentLogger.error('Failed to create payment order', orderError);
       Alert.alert(
         'Order Creation Failed',
         orderError.data?.message || 'Failed to create payment order. Please try again.',
@@ -202,11 +210,11 @@ export default function PaymentScreen() {
   // Handle WebView navigation state changes to detect payment completion
   const handleWebViewNavigationStateChange = async (navState: any) => {
     const { url } = navState;
-    console.log('WebView navigation:', url);
+    paymentLogger.debug('WebView navigation', { url });
 
     // Check if the URL contains payment success parameters
     if (url.includes('payment-success')) {
-      console.log('Payment completed successfully!');
+      paymentLogger.info('Payment completed successfully');
 
       // Extract payment parameters from URL
       const urlParams = new URLSearchParams(url.split('?')[1] || '');
@@ -243,7 +251,7 @@ export default function PaymentScreen() {
     
     // Check if the URL indicates payment failure
     if (url.includes('payment-failed') || url.includes('error')) {
-      console.log('Payment failed');
+      paymentLogger.warn('Payment failed');
       setShowPaymentWebView(false);
       
       Alert.alert(
@@ -258,10 +266,12 @@ export default function PaymentScreen() {
   const handleWebViewMessage = async (event: any) => {
     try {
       const message = JSON.parse(event.nativeEvent.data);
-      console.log('WebView message:', message);
+      paymentLogger.debug('WebView message', { type: message.type });
 
       if (message.type === 'PAYMENT_SUCCESS') {
-        console.log('Payment successful via message:', message.data);
+        paymentLogger.info('Payment successful via message', {
+          payment_id: message.data.payment_id
+        });
 
         // Extract payment details from message
         const { payment_id, order_id, signature } = message.data;
@@ -292,7 +302,7 @@ export default function PaymentScreen() {
         }
       }
     } catch (error) {
-      console.log('Error parsing WebView message:', error);
+      paymentLogger.error('Error parsing WebView message', error);
     }
   };
 

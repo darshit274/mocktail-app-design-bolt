@@ -12,6 +12,9 @@ import { notificationService } from '@/services/NotificationService';
 import TestNotificationIntegration from '@/services/TestNotificationIntegration';
 import { APP_CONFIG } from '@/config/constants';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
+import logger from '@/utils/logger';
+
+const appLogger = logger.createLogger('App');
 
 function AppContent() {
   useFrameworkReady();
@@ -22,38 +25,31 @@ function AppContent() {
       // Initialize notification service only if enabled
       if (APP_CONFIG.ENABLE_NOTIFICATIONS) {
         try {
-          console.log('🔔 Starting notification service initialization...');
+          appLogger.info('Starting notification service initialization');
           const initialized = await notificationService.initialize();
           if (initialized) {
-            console.log('✅ Notification service initialized successfully');
-            
+            appLogger.info('Notification service initialized successfully');
+
             // Initialize test notification integration
             try {
-              console.log('🧪 Initializing test notification integration...');
+              appLogger.info('Initializing test notification integration');
               const testNotificationsReady = await TestNotificationIntegration.initialize();
               if (testNotificationsReady) {
-                console.log('✅ Test notification integration initialized successfully');
+                appLogger.info('Test notification integration initialized successfully');
               } else {
-                console.warn('⚠️ Test notification integration initialization failed');
+                appLogger.warn('Test notification integration initialization failed');
               }
             } catch (testNotificationError) {
-              console.error('❌ Error initializing test notifications:', testNotificationError);
+              appLogger.error('Error initializing test notifications', testNotificationError);
             }
           } else {
-            console.warn('⚠️ Notification service initialization failed');
+            appLogger.warn('Notification service initialization failed');
           }
         } catch (error: any) {
-          console.error('❌ Error initializing notification service:', error);
-          // Log specific error details for debugging
-          if (error.message) {
-            console.error('Error message:', error.message);
-          }
-          if (error.stack) {
-            console.error('Error stack:', error.stack);
-          }
+          appLogger.error('Error initializing notification service', error);
         }
       } else {
-        console.log('📵 Notification service disabled in configuration');
+        appLogger.info('Notification service disabled in configuration');
       }
     };
 

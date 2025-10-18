@@ -57,28 +57,6 @@ export const QuestionCard = memo<QuestionCardProps>(({
   return (
     <View style={styles.questionCard}>
       <View style={styles.questionHeader}>
-        <View style={styles.questionMeta}>
-          <View style={styles.subjectBadge}>
-            <BookOpen size={12} color={Colors.primary} />
-            <Text style={styles.subjectText}>{question.subject}</Text>
-          </View>
-          <View
-            style={[
-              styles.difficultyBadge,
-              { backgroundColor: getDifficultyColor(question.difficulty) }
-            ]}
-          >
-            <Text
-              style={[
-                styles.difficultyText,
-                { color: getDifficultyTextColor(question.difficulty) }
-              ]}
-            >
-              {question.difficulty}
-            </Text>
-          </View>
-        </View>
-
         <View style={styles.statusContainer}>
           {getStatusIcon(answerStatus)}
           <Text style={[styles.statusText, { color: getStatusColor(answerStatus) }]}>
@@ -114,14 +92,6 @@ export const QuestionCard = memo<QuestionCardProps>(({
           },
         }}
       />
-
-      <View style={styles.timeContainer}>
-        <Clock size={14} color={Colors.textSubtle} />
-        <Text style={styles.timeText}>
-          Time spent:{' '}
-          {question.timeSpent > 0 ? formatTime(question.timeSpent) : 'Not attempted'}
-        </Text>
-      </View>
     </View>
   );
 });

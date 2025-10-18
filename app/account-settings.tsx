@@ -36,6 +36,9 @@ import { RootState } from '@/store/store';
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/userApi';
 import { setCredentials } from '@/store/slices/authSlice';
 import Toast from 'react-native-toast-message';
+import logger from '@/utils/logger';
+
+const settingsLogger = logger.createLogger('AccountSettings');
 
 interface ProfileFormData {
   fullName: string;
@@ -205,7 +208,7 @@ export default function AccountSettingsScreen() {
         }
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      settingsLogger.error('Error picking image', error);
       Toast.show({
         type: 'error',
         text1: 'Image Selection Failed',
@@ -230,13 +233,15 @@ export default function AccountSettingsScreen() {
 
       // Handle image upload
       if (imageUri && imageUri !== formData.avatarUrl) {
-        console.log('Image changed - Current URI:', imageUri);
-        console.log('Previous Avatar URL:', formData.avatarUrl);
+        settingsLogger.info('Image changed', {
+          hasNewImage: !!imageUri,
+          hadPreviousAvatar: !!formData.avatarUrl
+        });
 
         // Both web and mobile now use the same approach - pass the URI/blob
         // The API layer will handle base64 conversion
         updateData.avatar = imageUri;
-        console.log('Added avatar to update data');
+        settingsLogger.debug('Added avatar to update data');
       }
 
       const result = await updateProfile(updateData).unwrap();
@@ -263,7 +268,7 @@ export default function AccountSettingsScreen() {
       setHasChanges(false);
       router.back();
     } catch (error) {
-      console.error('Update error:', error);
+      settingsLogger.error('Update error', error);
       Toast.show({
         type: 'error',
         text1: 'Update Failed',

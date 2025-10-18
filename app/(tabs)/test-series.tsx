@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Filter, Star, Clock, Users, Play, Lock, CircleCheck as CheckCircle, ShoppingCart, Gift, AlertCircle, ChevronRight, BookOpen, Award } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -9,6 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useGetDynamicTestSeriesQuery, DynamicTestSeries, convertDynamicSeriesToOldFormat } from '@/store/api/dynamicHierarchyApi';
 import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
 import { useMultipleSubscriptionAccess, getSeriesButtonState } from '@/hooks/useSubscriptionAccess';
+import { TestSeriesCard } from '@/components/test-series';
 
 export default function TestSeriesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,10 +35,11 @@ export default function TestSeriesScreen() {
   const pagination = testSeriesResponse?.pagination;
 
   // Get subscription access data for all test series
-  const seriesIds = testSeries.map(series => series.id);
+  const seriesIds = useMemo(() => testSeries.map(series => series.id), [testSeries]);
   const { accessDataMap, loading: accessLoading } = useMultipleSubscriptionAccess(seriesIds);
 
-  const handleTestSeriesSelect = (series: DynamicTestSeries) => {
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleTestSeriesSelect = useCallback((series: DynamicTestSeries) => {
     // Navigate to categories list for this test series using new dynamic structure
     router.push({
       pathname: '/test/series-detail',
@@ -46,17 +48,17 @@ export default function TestSeriesScreen() {
         title: series.name || series.title || 'Test Series',
       },
     });
-  };
+  }, []);
 
-  const handlePurchase = (series: DynamicTestSeries) => {
+  const handlePurchase = useCallback((series: DynamicTestSeries) => {
     const accessData = accessDataMap[series.id];
     const buttonState = getSeriesButtonState(accessData);
-    
+
     // Prevent purchase if already subscribed or payment is pending
     if (!buttonState.showEnrollButton || buttonState.isDisabled) {
       return;
     }
-    
+
     router.push({
       pathname: '/payment',
       params: {
@@ -66,12 +68,12 @@ export default function TestSeriesScreen() {
         type: 'test-series',
       },
     });
-  };
+  }, [accessDataMap]);
 
-  const handleStartTest = (series: TestSeries) => {
+  const handleStartTest = useCallback((series: DynamicTestSeries) => {
     // Navigate to test series categories
     handleTestSeriesSelect(series);
-  };
+  }, [handleTestSeriesSelect]);
 
   const renderErrorState = () => (
     <View style={[styles.centerContainer, { paddingTop: 60 }]}>
@@ -103,139 +105,32 @@ export default function TestSeriesScreen() {
     </View>
   );
 
-  const renderTestSeriesCard = (series: DynamicTestSeries, index: number) => {
+  // Simplified render function using TestSeriesCard component
+  const renderTestSeriesCard = useCallback((series: DynamicTestSeries, index: number) => {
     const accessData = accessDataMap[series.id];
     const buttonState = getSeriesButtonState(accessData);
-    const hasAccess = accessData?.hasAccess || false;
 
     return (
-    <TouchableOpacity
-      key={series.id}
-      style={styles.seriesCard}
-      onPress={() => handleTestSeriesSelect(series)}
-    >
-      {/* Header */}
-      <View style={styles.seriesHeader}>
-        <View style={styles.seriesHeaderLeft}>
-          <Text style={styles.seriesTitle}>{series.name || series.title}</Text>
-          <View style={styles.ratingContainer}>
-            <Star size={14} color={Colors.warning} fill={Colors.warning} />
-            <Text style={styles.rating}>{series.rating || 4.5}</Text>
-            <Text style={styles.studentsCount}>({series.purchase_count || 0} students)</Text>
-          </View>
-        </View>
-        {hasAccess && (
-          <View style={styles.purchasedBadge}>
-            <CheckCircle size={16} color={Colors.success} />
-            <Text style={styles.purchasedText}>
-              {accessData?.accessType === 'free' ? 'Free Access' : 'Enrolled'}
-            </Text>
-          </View>
-        )}
-        {accessData?.hasPendingPayment && (
-          <View style={[styles.purchasedBadge, { backgroundColor: Colors.warning + '20' }]}>
-            <Clock size={16} color={Colors.warning} />
-            <Text style={[styles.purchasedText, { color: Colors.warning }]}>Pending Payment</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Description */}
-      {series.description && (
-        <Text style={styles.seriesDescription} numberOfLines={2}>{series.description}</Text>
-      )}
-
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Clock size={16} color={Colors.textSubtle} />
-          <Text style={styles.statText}>12 months</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Play size={16} color={Colors.textSubtle} />
-          <Text style={styles.statText}>{series.tests_count || series.total_tests || 0} tests</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Award size={16} color={Colors.textSubtle} />
-          <Text style={styles.statText}>Full Access</Text>
-        </View>
-      </View>
-
-      {/* Price and Action */}
-      <View style={styles.actionContainer}>
-        <View style={styles.priceContainer}>
-          <Text style={styles.price}>₹{series.price}</Text>
-          {series.original_price && series.original_price > series.price && (
-            <>
-              <Text style={styles.originalPrice}>₹{series.original_price}</Text>
-              <View style={styles.discountBadge}>
-                <Text style={styles.discountText}>
-                  {Math.round((1 - series.price / series.original_price) * 100)}% OFF
-                </Text>
-              </View>
-            </>
-          )}
-        </View>
-        
-        <View style={styles.buttonContainer}>
-          {hasAccess ? (
-            <TouchableOpacity 
-              style={styles.startButton}
-              onPress={() => handleTestSeriesSelect(series)}
-            >
-              <Text style={styles.startButtonText}>
-                {buttonState.buttonText === 'Start Free' ? 'Start Free' : 'Continue'}
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <>
-              {buttonState.showEnrollButton ? (
-                <TouchableOpacity 
-                  style={[
-                    styles.purchaseButton,
-                    buttonState.isDisabled && { opacity: 0.5 }
-                  ]}
-                  onPress={() => handlePurchase(series)}
-                  disabled={buttonState.isDisabled}
-                >
-                  {buttonState.buttonType === 'pending' ? (
-                    <Clock size={16} color={Colors.white} />
-                  ) : (
-                    <Lock size={16} color={Colors.white} />
-                  )}
-                  <Text style={styles.purchaseButtonText}>
-                    {buttonState.buttonText}
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity 
-                  style={styles.startButton}
-                  onPress={() => handleTestSeriesSelect(series)}
-                >
-                  <Text style={styles.startButtonText}>Start Free</Text>
-                </TouchableOpacity>
-              )}
-            </>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-  };
-
-  const styles = getStyles(Colors);
-
-  // Show error state if there's an error
-  if (testSeriesError) {
-    return (
-      <SafeAreaView style={styles.container}>
-        {renderErrorState()}
-      </SafeAreaView>
+      <TestSeriesCard
+        series={series}
+        index={index}
+        accessData={accessData}
+        buttonState={buttonState}
+        onPress={handleTestSeriesSelect}
+        onPurchase={handlePurchase}
+        Colors={Colors}
+      />
     );
-  }
+  }, [accessDataMap, handleTestSeriesSelect, handlePurchase, Colors]);
 
-  return (
-    <SafeAreaView style={styles.container}>
+  // Memoize styles to prevent recalculation on every render
+  const styles = useMemo(() => getStyles(Colors), [Colors]);
+
+  // FlatList optimizations
+  const keyExtractor = useCallback((item: DynamicTestSeries) => item.id.toString(), []);
+
+  const renderListHeaderComponent = useCallback(() => (
+    <>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Test Series</Text>
@@ -256,11 +151,45 @@ export default function TestSeriesScreen() {
           />
         </View>
       </View>
+    </>
+  ), [searchQuery, styles, Colors]);
 
-      {/* Test Series List */}
-      <ScrollView 
-        style={styles.content} 
-        showsVerticalScrollIndicator={false}
+  const renderListEmptyComponent = useCallback(() => renderEmptyState(), [Colors, t]);
+
+  // Show error state if there's an error
+  if (testSeriesError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        {renderErrorState()}
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={testSeries}
+        renderItem={({ item, index }) => renderTestSeriesCard(item, index)}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={renderListHeaderComponent}
+        ListEmptyComponent={testSeriesLoading ? (
+          <View style={styles.content}>
+            {Array.from({ length: 3 }).map((_, index) => (
+              <View key={index} style={styles.seriesCard}>
+                <SkeletonLoader width="70%" height={20} style={{ marginBottom: 8 }} />
+                <SkeletonLoader width="100%" height={16} style={{ marginBottom: 16 }} />
+                <View style={styles.statsContainer}>
+                  <SkeletonLoader width={80} height={16} />
+                  <SkeletonLoader width={80} height={16} />
+                  <SkeletonLoader width={80} height={16} />
+                </View>
+                <SkeletonLoader width="100%" height={48} style={{ marginTop: 16, borderRadius: 12 }} />
+              </View>
+            ))}
+          </View>
+        ) : (
+          renderListEmptyComponent()
+        )}
         refreshControl={
           <RefreshControl
             refreshing={testSeriesLoading}
@@ -269,27 +198,14 @@ export default function TestSeriesScreen() {
             tintColor={Colors.primary}
           />
         }
-      >
-        {testSeriesLoading ? (
-          // Show skeleton loaders for test series
-          Array.from({ length: 3 }).map((_, index) => (
-            <View key={index} style={styles.seriesCard}>
-              <SkeletonLoader width="70%" height={20} style={{ marginBottom: 8 }} />
-              <SkeletonLoader width="100%" height={16} style={{ marginBottom: 16 }} />
-              <View style={styles.statsContainer}>
-                <SkeletonLoader width={80} height={16} />
-                <SkeletonLoader width={80} height={16} />
-                <SkeletonLoader width={80} height={16} />
-              </View>
-              <SkeletonLoader width="100%" height={48} style={{ marginTop: 16, borderRadius: 12 }} />
-            </View>
-          ))
-        ) : testSeries.length === 0 ? (
-          renderEmptyState()
-        ) : (
-          testSeries.map((series, index) => renderTestSeriesCard(series, index))
-        )}
-      </ScrollView>
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 }}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={5}
+        windowSize={10}
+      />
     </SafeAreaView>
   );
 }

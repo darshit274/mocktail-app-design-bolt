@@ -1,0 +1,563 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LeaderboardItem snapshot tests matches snapshot for rank 1 1`] = `
+<View
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 12,
+        "elevation": 2,
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 8,
+        "marginHorizontal": 20,
+        "padding": 16,
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.05,
+        "shadowRadius": 2,
+      },
+      {
+        "backgroundColor": "#F9FAFB",
+        "shadowColor": "#000000",
+      },
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flex": 1,
+        "flexDirection": "row",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 16,
+            "height": 32,
+            "justifyContent": "center",
+            "marginRight": 12,
+            "width": 32,
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+        ]
+      }
+    >
+      <RNSVGSvgView
+        align="xMidYMid"
+        bbHeight={24}
+        bbWidth={24}
+        fill="none"
+        focusable={false}
+        height={24}
+        meetOrSlice={0}
+        minX={0}
+        minY={0}
+        stroke="#FFD700"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        style={
+          [
+            {
+              "backgroundColor": "transparent",
+              "borderWidth": 0,
+            },
+            {
+              "flex": 0,
+              "height": 24,
+              "width": 24,
+            },
+          ]
+        }
+        vbHeight={24}
+        vbWidth={24}
+        width={24}
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <RNSVGGroup
+          fill={null}
+          propList={
+            [
+              "fill",
+              "stroke",
+              "strokeWidth",
+              "strokeLinecap",
+              "strokeLinejoin",
+            ]
+          }
+          stroke={
+            {
+              "payload": 4294956800,
+              "type": 0,
+            }
+          }
+          strokeLinecap={1}
+          strokeLinejoin={1}
+          strokeWidth={2}
+        >
+          <RNSVGPath
+            d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"
+            fill={null}
+            propList={
+              [
+                "fill",
+                "stroke",
+                "strokeWidth",
+                "strokeLinecap",
+                "strokeLinejoin",
+              ]
+            }
+            stroke={
+              {
+                "payload": 4294956800,
+                "type": 0,
+              }
+            }
+            strokeLinecap={1}
+            strokeLinejoin={1}
+            strokeWidth={2}
+          />
+          <RNSVGPath
+            d="M5 21h14"
+            fill={null}
+            propList={
+              [
+                "fill",
+                "stroke",
+                "strokeWidth",
+                "strokeLinecap",
+                "strokeLinejoin",
+              ]
+            }
+            stroke={
+              {
+                "payload": 4294956800,
+                "type": 0,
+              }
+            }
+            strokeLinecap={1}
+            strokeLinejoin={1}
+            strokeWidth={2}
+          />
+        </RNSVGGroup>
+      </RNSVGSvgView>
+    </View>
+    <Image
+      source={
+        {
+          "uri": "https://example.com/avatar-1.jpg",
+        }
+      }
+      style={
+        {
+          "alignItems": "center",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 40,
+        }
+      }
+    />
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontSize": 16,
+              "fontWeight": "500",
+              "marginBottom": 2,
+            },
+            {
+              "color": "#1F2937",
+            },
+          ]
+        }
+      >
+        Top Scorer
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontSize": 12,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        95.0
+        % • 
+        1h 30m
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "flex-end",
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "fontSize": 16,
+            "fontWeight": "600",
+            "marginBottom": 2,
+          },
+          {
+            "color": "#3B82F6",
+          },
+        ]
+      }
+    >
+      95
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`LeaderboardItem snapshot tests matches snapshot with default props 1`] = `
+<View
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 12,
+        "elevation": 2,
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 8,
+        "marginHorizontal": 20,
+        "padding": 16,
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.05,
+        "shadowRadius": 2,
+      },
+      {
+        "backgroundColor": "#F9FAFB",
+        "shadowColor": "#000000",
+      },
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flex": 1,
+        "flexDirection": "row",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 16,
+            "height": 32,
+            "justifyContent": "center",
+            "marginRight": 12,
+            "width": 32,
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontSize": 14,
+              "fontWeight": "600",
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        5
+      </Text>
+    </View>
+    <Image
+      source={
+        {
+          "uri": "https://example.com/avatar.jpg",
+        }
+      }
+      style={
+        {
+          "alignItems": "center",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 40,
+        }
+      }
+    />
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontSize": 16,
+              "fontWeight": "500",
+              "marginBottom": 2,
+            },
+            {
+              "color": "#1F2937",
+            },
+          ]
+        }
+      >
+        John Doe
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontSize": 12,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        85.5
+        % • 
+        1h 0m
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "flex-end",
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "fontSize": 16,
+            "fontWeight": "600",
+            "marginBottom": 2,
+          },
+          {
+            "color": "#3B82F6",
+          },
+        ]
+      }
+    >
+      85
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`LeaderboardItem snapshot tests matches snapshot without avatar 1`] = `
+<View
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 12,
+        "elevation": 2,
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 8,
+        "marginHorizontal": 20,
+        "padding": 16,
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.05,
+        "shadowRadius": 2,
+      },
+      {
+        "backgroundColor": "#F9FAFB",
+        "shadowColor": "#000000",
+      },
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flex": 1,
+        "flexDirection": "row",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 16,
+            "height": 32,
+            "justifyContent": "center",
+            "marginRight": 12,
+            "width": 32,
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontSize": 14,
+              "fontWeight": "600",
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        5
+      </Text>
+    </View>
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 20,
+            "height": 40,
+            "justifyContent": "center",
+            "marginRight": 12,
+            "width": 40,
+          },
+          {
+            "backgroundColor": "#3B82F6",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontSize": 14,
+              "fontWeight": "600",
+            },
+            {
+              "color": "#FFFFFF",
+            },
+          ]
+        }
+      >
+        J
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontSize": 16,
+              "fontWeight": "500",
+              "marginBottom": 2,
+            },
+            {
+              "color": "#1F2937",
+            },
+          ]
+        }
+      >
+        John Doe
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontSize": 12,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        85.5
+        % • 
+        1h 0m
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "flex-end",
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "fontSize": 16,
+            "fontWeight": "600",
+            "marginBottom": 2,
+          },
+          {
+            "color": "#3B82F6",
+          },
+        ]
+      }
+    >
+      85
+    </Text>
+  </View>
+</View>
+`;

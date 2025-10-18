@@ -2,9 +2,10 @@
  * Question Navigator Grid Component
  * Created: 2025-01-11
  * Purpose: Grid view for navigating between all quiz questions
+ * Optimized: 2025-01-13 - Added useMemo for styles
  */
 
-import React, { memo } from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Question, AnswerOption, ThemeColors } from '@/types';
 import { createQuizStyles } from '@/styles/quizStyles';
@@ -30,10 +31,11 @@ export const QuestionNavigatorGrid = memo<QuestionNavigatorGridProps>(({
   onSubmit,
   Colors
 }) => {
-  const styles = createQuizStyles(Colors);
+  // Memoize styles to prevent recreation on every render
+  const styles = useMemo(() => createQuizStyles(Colors), [Colors]);
 
-  // Get question status color
-  const getQuestionStatusColor = (index: number): string => {
+  // Memoize status color function to prevent recreation
+  const getQuestionStatusColor = useCallback((index: number): string => {
     const question = questions[index];
     if (!question) return Colors.muted;
 
@@ -54,7 +56,7 @@ export const QuestionNavigatorGrid = memo<QuestionNavigatorGridProps>(({
 
     // Unanswered questions - show muted color
     return Colors.muted;
-  };
+  }, [questions, currentQuestion, flaggedQuestions, selectedAnswers, Colors]);
 
   return (
     <View style={styles.gridContainer}>

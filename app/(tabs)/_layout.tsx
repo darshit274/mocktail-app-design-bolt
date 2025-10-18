@@ -68,12 +68,7 @@ export default function TabLayout() {
             href: null, // Hide from tab bar but keep accessible via direct navigation
           }}
         />
-        <Tabs.Screen
-          name="free-in-paid-tests"
-          options={{
-            href: null, // Hide from tab bar but keep accessible via direct navigation
-          }}
-        />
+        {/* Removed: free-in-paid-tests - Feature deprecated, replaced with inline hierarchy */}
         <Tabs.Screen
           name="notifications"
           options={{

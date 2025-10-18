@@ -115,19 +115,11 @@ export default function PDFsScreen() {
 
   const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
-  }, []);
-
-  const formatFileSize = useCallback((bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }, []);
 
   const handleSearch = useCallback((text: string) => {
@@ -140,7 +132,8 @@ export default function PDFsScreen() {
     setCurrentPage(1); // Reset to first page when changing category
   }, []);
 
-  const styles = getStyles(Colors);
+  // Memoize styles to prevent recalculation on every render
+  const styles = useMemo(() => getStyles(Colors), [Colors]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -233,7 +226,6 @@ export default function PDFsScreen() {
               key={pdf.id}
               pdf={pdf}
               onPreview={handlePreview}
-              formatFileSize={formatFileSize}
               formatDate={formatDate}
             />
           ))

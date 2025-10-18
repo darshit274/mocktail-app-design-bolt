@@ -41,9 +41,10 @@ export interface DynamicCategory {
   node_type: 'container' | 'question_holder' | 'unset';
   hierarchy_level: number;
   display_order: number;
+  is_free_in_paid_series?: boolean;
   created_at: string;
   updated_at: string;
-  
+
   // Metadata
   subcategories_count: number;
   questions_count: number;

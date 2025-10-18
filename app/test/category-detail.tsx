@@ -10,13 +10,19 @@ import {
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Folder, FileText, Play } from 'lucide-react-native';
+import { ArrowLeft, Folder, FileText, Play, Lock, ChevronRight, CheckCircle } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 
 import { useGetDynamicCategoryByUuidQuery } from '@/store/api/dynamicHierarchyApi';
+import { useGetTestHistoryQuery } from '@/store/api/userApi';
 import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { LoadingState, ErrorState } from '@/components/shared';
+import { SubscriptionRequiredModal } from '@/components/modals/SubscriptionRequiredModal';
+import logger from '@/utils/logger';
+
+const categoryLogger = logger.createLogger('CategoryDetail');
 
 export default function CategoryDetailScreen() {
   const router = useRouter();
@@ -27,6 +33,8 @@ export default function CategoryDetailScreen() {
   }>();
 
   const [language, setLanguage] = useState<'english' | 'gujarati'>('gujarati');
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [lockedTestName, setLockedTestName] = useState<string>('');
 
   const { theme } = useTheme();
   const Colors = getTheme(theme);
@@ -47,14 +55,58 @@ export default function CategoryDetailScreen() {
 
   const hasSeriesAccess = accessData?.hasAccess || false;
 
+  // Fetch test history to check if this test is completed
+  const { data: testHistoryData } = useGetTestHistoryQuery({ page: 1, limit: 100 });
+
+  // Debug logging
+  React.useEffect(() => {
+    if (testHistoryData) {
+      categoryLogger.debug('Test History Data:', {
+        totalSessions: testHistoryData?.data?.sessions?.length,
+        sessions: testHistoryData?.data?.sessions,
+        currentCategoryUuid: params.categoryUuid,
+      });
+    }
+  }, [testHistoryData, params.categoryUuid]);
+
+  // Check if current category test is completed
+  const isTestCompleted = testHistoryData?.data?.sessions?.some(
+    (session: any) => {
+      const matches = session.test?.uuid === params.categoryUuid || session.uuid === params.categoryUuid;
+      categoryLogger.debug('Checking session:', {
+        sessionUuid: session.uuid,
+        testUuid: session.test?.uuid,
+        categoryUuid: params.categoryUuid,
+        matches,
+      });
+      return matches;
+    }
+  ) || false;
+
+  categoryLogger.info('Test completion status:', {
+    categoryUuid: params.categoryUuid,
+    isCompleted: isTestCompleted,
+  });
+
+  // Debug: Log render conditions
+  React.useEffect(() => {
+    if (categoryData?.data) {
+      categoryLogger.debug('Render conditions:', {
+        content_type: categoryData.data.content_type,
+        hasContent: !!categoryData.data.content,
+        isArray: Array.isArray(categoryData.data.content),
+        contentLength: Array.isArray(categoryData.data.content) ? categoryData.data.content.length : 'N/A',
+        isTestCompleted,
+        categoryName: categoryData.data.category?.name,
+      });
+    }
+  }, [categoryData, isTestCompleted]);
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading category...</Text>
-        </View>
+        <LoadingState message="Loading category..." Colors={Colors} fullScreen />
       </SafeAreaView>
     );
   }
@@ -63,12 +115,14 @@ export default function CategoryDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Error loading category</Text>
-          <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorState
+          title="Error loading category"
+          message="Unable to load category details. Please try again."
+          onRetry={() => refetch()}
+          retryText="Retry"
+          Colors={Colors}
+          fullScreen
+        />
       </SafeAreaView>
     );
   }
@@ -77,38 +131,56 @@ export default function CategoryDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Category not found</Text>
-        </View>
+        <ErrorState
+          title="Category not found"
+          message="The requested category could not be found."
+          onRetry={() => router.back()}
+          retryText="Go Back"
+          Colors={Colors}
+          fullScreen
+        />
       </SafeAreaView>
     );
   }
 
   const { category, content_type, content, breadcrumb, statistics } = categoryData.data;
 
+  // Helper to determine if a subcategory is accessible
+  const isSubcategoryAccessible = (subcategory: any) => {
+    const isPaidSeries = categoryData?.data?.category?.testSeries?.pricing_type === 'paid';
+
+    // Free series - all accessible
+    if (!isPaidSeries) return true;
+
+    // Paid series with subscription - all accessible
+    if (hasSeriesAccess) return true;
+
+    // Paid series without subscription
+    // Containers are always navigable (no lock)
+    if (subcategory.node_type === 'container') return true;
+
+    // Question holders - check is_free_in_paid_series
+    if (subcategory.node_type === 'question_holder') {
+      return subcategory.is_free_in_paid_series === true;
+    }
+
+    // Default: not accessible
+    return false;
+  };
+
   const handleSubcategoryPress = (subcategory: any) => {
-    // Check subscription access before allowing navigation
-    if (categoryData?.data?.category?.testSeries?.pricing_type === 'paid' && !hasSeriesAccess) {
-      Alert.alert(
-        'Subscription Required',
-        'This test requires a subscription. Please purchase the test series to access this content.',
-        [
-          {
-            text: 'View Plans',
-            onPress: () => router.push({
-              pathname: '/test/series-detail',
-              params: { seriesId: params.seriesUuid }
-            })
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel'
-          }
-        ]
-      );
+    const isPaidSeries = categoryData?.data?.category?.testSeries?.pricing_type === 'paid';
+    const isAccessible = isSubcategoryAccessible(subcategory);
+
+    // If not accessible, show stylish subscription modal
+    if (isPaidSeries && !isAccessible) {
+      // TODO: Track analytics for locked test click
+      setLockedTestName(subcategory.name);
+      setShowSubscriptionModal(true);
       return;
     }
 
+    // Navigate to subcategory
     router.push({
       pathname: '/test/category-detail',
       params: {
@@ -119,9 +191,29 @@ export default function CategoryDetailScreen() {
     });
   };
 
+  const handleViewPlans = () => {
+    setShowSubscriptionModal(false);
+    router.push({
+      pathname: '/test/series-detail',
+      params: { seriesId: params.seriesUuid }
+    });
+  };
+
+  const handleViewResults = () => {
+    categoryLogger.info('View Results button pressed');
+    router.push({
+      pathname: '/test/test-attempts',
+      params: {
+        categoryUuid: params.categoryUuid,
+        categoryName: params.categoryName,
+        seriesUuid: params.seriesUuid,
+      },
+    });
+  };
+
   const handleStartQuiz = () => {
-    console.log('🎯 Start Quiz button pressed');
-    console.log('📊 State check:', {
+    categoryLogger.info('Start Quiz button pressed');
+    categoryLogger.debug('State check', {
       content_type,
       contentLength: Array.isArray(content) ? content.length : 'not array',
       pricing_type: categoryData?.data?.category?.testSeries?.pricing_type,
@@ -131,7 +223,7 @@ export default function CategoryDetailScreen() {
 
     // Check if category has questions first
     if (!(content_type === 'questions' && Array.isArray(content) && content.length > 0)) {
-      console.log('❌ No questions available');
+      categoryLogger.warn('No questions available at this level');
       Toast.show({
         type: 'error',
         text1: 'No Questions at This Level',
@@ -142,7 +234,7 @@ export default function CategoryDetailScreen() {
 
     // Check if this is a paid series and user has access
     if (categoryData?.data?.category?.testSeries?.pricing_type === 'paid' && !hasSeriesAccess) {
-      console.log('❌ Subscription required');
+      categoryLogger.warn('Subscription required for quiz access');
       Alert.alert(
         'Subscription Required',
         'This test requires a subscription. Please purchase the test series to access this content.',
@@ -164,7 +256,7 @@ export default function CategoryDetailScreen() {
     }
 
     // All checks passed, navigate to quiz
-    console.log('✅ All checks passed, navigating to quiz');
+    categoryLogger.info('All checks passed, navigating to quiz');
     router.push({
       pathname: '/test/quiz',
       params: {
@@ -206,6 +298,13 @@ export default function CategoryDetailScreen() {
 
   const renderContent = () => {
     if (content_type === 'categories' && Array.isArray(content)) {
+      const isPaidSeries = categoryData?.data?.category?.testSeries?.pricing_type === 'paid';
+
+      // Filter out unset items completely
+      const visibleContent = content.filter((subcategory: any) =>
+        subcategory.node_type !== 'unset'
+      );
+
       return (
         <View style={styles.contentContainer}>
           <View style={styles.sectionHeader}>
@@ -216,52 +315,97 @@ export default function CategoryDetailScreen() {
               Navigate deeper to find questions - this hierarchy has {statistics?.total_questions_recursive || 0} questions at deeper levels
             </Text>
           </View>
-          {content.map((subcategory: any) => (
-            <TouchableOpacity
-              key={subcategory.uuid}
-              style={styles.categoryItem}
-              onPress={() => handleSubcategoryPress(subcategory)}
-            >
-              <View style={styles.categoryIcon}>
-                <Folder size={24} color={Colors.primary} />
-              </View>
-              <View style={styles.categoryContent}>
-                <View style={styles.categoryTitleRow}>
-                  <Text style={styles.categoryTitle}>
-                    {language === 'gujarati'
-                      ? (subcategory.name_gujarati || subcategory.name)
-                      : (subcategory.name || subcategory.name_gujarati)}
-                  </Text>
-                  <View style={styles.levelIndicator}>
-                    <Text style={styles.levelText}>L{subcategory.hierarchy_level}</Text>
-                  </View>
+          {visibleContent.map((subcategory: any) => {
+            const isAccessible = isSubcategoryAccessible(subcategory);
+            const isQuestionHolder = subcategory.node_type === 'question_holder';
+            const isFreeInPaid = isPaidSeries && !hasSeriesAccess && isQuestionHolder && subcategory.is_free_in_paid_series === true;
+            const isLocked = isPaidSeries && !hasSeriesAccess && isQuestionHolder && !isAccessible;
+
+            return (
+              <TouchableOpacity
+                key={subcategory.uuid}
+                style={[
+                  styles.categoryItem,
+                  isLocked && styles.categoryItemLocked
+                ]}
+                onPress={() => handleSubcategoryPress(subcategory)}
+                activeOpacity={0.7}
+              >
+                {/* Left: Icon Section */}
+                <View style={[
+                  styles.categoryIconContainer,
+                  isLocked && styles.categoryIconContainerLocked
+                ]}>
+                  {isLocked ? (
+                    <Lock size={22} color={Colors.textSecondary} />
+                  ) : (
+                    <Folder size={22} color={Colors.primary} />
+                  )}
                 </View>
-                {(subcategory.description || subcategory.description_gujarati) && (
-                  <Text style={styles.categoryDescription}>
-                    {language === 'gujarati'
-                      ? (subcategory.description_gujarati || subcategory.description)
-                      : (subcategory.description || subcategory.description_gujarati)}
-                  </Text>
-                )}
-                <View style={styles.categoryMeta}>
-                  <Text style={styles.categoryMetaText}>
-                    {subcategory.has_subcategories && `${subcategory.subcategories_count} more levels deeper`}
-                    {subcategory.questions_count > 0 && ` • ${subcategory.questions_count} questions here`}
-                  </Text>
+
+                {/* Middle: Content Section */}
+                <View style={styles.categoryContent}>
+                  <View style={styles.categoryTitleRow}>
+                    <Text
+                      style={[
+                        styles.categoryTitle,
+                        isLocked && styles.categoryTitleLocked
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {language === 'gujarati'
+                        ? (subcategory.name_gujarati || subcategory.name)
+                        : (subcategory.name || subcategory.name_gujarati)}
+                    </Text>
+                  </View>
+
+                  {/* Badges Row */}
+                  <View style={styles.badgesRow}>
+                    {isFreeInPaid && (
+                      <View style={styles.freeBadge}>
+                        <Text style={styles.freeBadgeText}>FREE</Text>
+                      </View>
+                    )}
+                    {isLocked && (
+                      <View style={styles.lockedBadge}>
+                        <Text style={styles.lockedBadgeText}>LOCKED</Text>
+                      </View>
+                    )}
+                    <View style={styles.levelBadge}>
+                      <Text style={styles.levelBadgeText}>Level {subcategory.hierarchy_level}</Text>
+                    </View>
+                  </View>
+
+                  {/* Stats Row */}
                   {subcategory.total_questions_recursive > 0 && (
-                    <View style={styles.questionsRecursiveContainer}>
-                      <Text style={styles.categoryRecursiveText}>
-                        🎯 {subcategory.total_questions_recursive} total questions in this branch
-                      </Text>
-                      <Text style={styles.navigationHint}>
-                        Tap to explore deeper levels →
-                      </Text>
+                    <View style={styles.statsRow}>
+                      <View style={styles.statItem}>
+                        <Text style={styles.statValue}>{subcategory.total_questions_recursive}</Text>
+                        <Text style={styles.statLabel}>Questions</Text>
+                      </View>
+                      {subcategory.has_subcategories && (
+                        <View style={styles.statDivider} />
+                      )}
+                      {subcategory.has_subcategories && (
+                        <View style={styles.statItem}>
+                          <Text style={styles.statValue}>{subcategory.subcategories_count}</Text>
+                          <Text style={styles.statLabel}>Sub-levels</Text>
+                        </View>
+                      )}
                     </View>
                   )}
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+
+                {/* Right: Arrow Icon */}
+                <View style={styles.categoryArrow}>
+                  <ChevronRight
+                    size={20}
+                    color={isLocked ? Colors.textTertiary : Colors.textSecondary}
+                  />
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       );
     }
@@ -325,10 +469,30 @@ export default function CategoryDetailScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.startQuizButton} onPress={handleStartQuiz}>
-            <Play size={20} color="white" />
-            <Text style={styles.startQuizText}>Start Quiz</Text>
-          </TouchableOpacity>
+          {/* Conditional buttons based on completion status */}
+          {isTestCompleted ? (
+            <View style={styles.actionButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.resultButton, { backgroundColor: Colors.success }]}
+                onPress={handleViewResults}
+              >
+                <CheckCircle size={20} color="white" />
+                <Text style={styles.resultButtonText}>View Results</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.retakeButton, { borderColor: Colors.primary }]}
+                onPress={handleStartQuiz}
+              >
+                <Play size={20} color={Colors.primary} />
+                <Text style={[styles.retakeButtonText, { color: Colors.primary }]}>Re-attempt</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.startQuizButton} onPress={handleStartQuiz}>
+              <Play size={20} color="white" />
+              <Text style={styles.startQuizText}>Take Test</Text>
+            </TouchableOpacity>
+          )}
         </View>
       );
     }
@@ -361,7 +525,17 @@ export default function CategoryDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      
+
+      {/* Subscription Required Modal */}
+      <SubscriptionRequiredModal
+        visible={showSubscriptionModal}
+        testName={lockedTestName}
+        seriesName={categoryData?.data?.category?.testSeries?.name}
+        onViewPlans={handleViewPlans}
+        onCancel={() => setShowSubscriptionModal(false)}
+        Colors={Colors}
+      />
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -512,47 +686,124 @@ const getStyles = (Colors: any) => StyleSheet.create({
   categoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  categoryIcon: {
-    marginRight: 16,
+  categoryItemLocked: {
+    opacity: 0.75,
+    backgroundColor: Colors.backgroundSecondary,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+  },
+  categoryIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: Colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  categoryIconContainerLocked: {
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   categoryContent: {
     flex: 1,
   },
   categoryTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   categoryTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: Colors.text,
-    flex: 1,
-    marginRight: 12,
+    lineHeight: 21,
   },
-  levelIndicator: {
-    backgroundColor: Colors.warning || Colors.secondary,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 32,
-    alignItems: 'center',
-  },
-  levelText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'white',
-  },
-  categoryDescription: {
-    fontSize: 14,
+  categoryTitleLocked: {
     color: Colors.textSecondary,
-    marginBottom: 4,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+    flexWrap: 'wrap',
+  },
+  freeBadge: {
+    backgroundColor: Colors.success,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  freeBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'white',
+    letterSpacing: 0.5,
+  },
+  lockedBadge: {
+    backgroundColor: Colors.error,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  lockedBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'white',
+    letterSpacing: 0.5,
+  },
+  levelBadge: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  levelBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  statDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: Colors.border,
+  },
+  categoryArrow: {
+    marginLeft: 8,
   },
   categoryMeta: {
     marginTop: 4,
@@ -645,6 +896,37 @@ const getStyles = (Colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+    marginLeft: 8,
+  },
+  actionButtonsContainer: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  resultButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    padding: 16,
+  },
+  resultButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
+    marginLeft: 8,
+  },
+  retakeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    backgroundColor: 'transparent',
+  },
+  retakeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
     marginLeft: 8,
   },
   emptyContainer: {

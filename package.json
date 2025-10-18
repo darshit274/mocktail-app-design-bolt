@@ -5,16 +5,19 @@
   "private": true,
   "scripts": {
     "dev": "EXPO_NO_TELEMETRY=1 expo start",
-    "build:web": "expo export --platform web",
+    "build:web": "NODE_ENV=production expo export --platform web",
+    "build:web:prod": "NODE_ENV=production expo export --platform web --minify",
+    "build:android": "NODE_ENV=production eas build --platform android",
+    "build:ios": "NODE_ENV=production eas build --platform ios",
     "lint": "expo lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "analyze:bundle": "NODE_ENV=production expo export --platform web --output-dir build-analysis"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.2",
-    "@lucide/lab": "^0.1.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/bottom-tabs": "^7.2.0",
@@ -73,6 +76,7 @@
     "eslint-config-expo": "~10.0.0",
     "jest": "29.7.0",
     "jest-expo": "~54.0.11",
+    "metro-minify-terser": "^0.80.0",
     "typescript": "~5.9.2"
   }
 }

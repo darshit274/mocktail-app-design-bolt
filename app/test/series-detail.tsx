@@ -1,24 +1,28 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Star, Clock, Play, Lock, Users, Gift, Award, BookOpen, ChevronRight, Folder } from 'lucide-react-native';
+import { ArrowLeft, Star, Clock, Play, Lock, Users, Gift, Award, BookOpen, ChevronRight, Folder, FileQuestion, CheckCircle } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { 
+import {
   useGetDynamicTestSeriesByUuidQuery,
   DynamicTestSeries,
   DynamicCategory,
   convertDynamicCategoryToTestFormat
 } from '@/store/api/dynamicHierarchyApi';
+import { useGetTestHistoryQuery } from '@/store/api/userApi';
 import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
+import { SubscriptionRequiredModal } from '@/components/modals/SubscriptionRequiredModal';
 import Toast from 'react-native-toast-message';
 import { useSubscriptionAccess, getSeriesButtonState } from '@/hooks/useSubscriptionAccess';
 
 export default function SeriesDetailScreen() {
   const { seriesUuid, title } = useLocalSearchParams<{ seriesUuid: string; title: string }>();
-  
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [lockedCategoryName, setLockedCategoryName] = useState<string>('');
+
   const { theme } = useTheme();
   const { t } = useLanguage();
   const Colors = getTheme(theme);
@@ -37,68 +41,109 @@ export default function SeriesDetailScreen() {
   const series = seriesData?.data;
   const categories = series?.categories || [];
 
-  // Get subscription access data for this series
+  // Use is_subscribed from series data directly (faster, no extra API call)
+  const hasAccess = series?.is_subscribed || false;
+
+  // Only fetch subscription details if needed for button state
   const { accessData, loading: accessLoading, error: accessError } = useSubscriptionAccess(series?.id);
   const buttonState = getSeriesButtonState(accessData);
-  const hasAccess = accessData?.hasAccess || false;
 
-  const handleCategorySelect = (categoryUuid: string, categoryTitle: string) => {
-    // Check subscription access before allowing navigation
-    if (series.pricing_type === 'paid' && !hasAccess) {
-      Alert.alert(
-        'Subscription Required',
-        'This test series requires a subscription. Please purchase to access the content.',
-        [
-          {
-            text: 'View Plans',
-            onPress: handlePurchase
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel'
-          }
-        ]
-      );
+  // Fetch test history to check completion status
+  const { data: testHistoryData } = useGetTestHistoryQuery({ page: 1, limit: 100 });
+
+  // Debug: Log test history data
+  React.useEffect(() => {
+    if (testHistoryData) {
+      console.log('📊 [SeriesDetail] Test History Data:', JSON.stringify(testHistoryData, null, 2));
+    }
+  }, [testHistoryData]);
+
+  // Helper to check if a category test is completed
+  const isCategoryCompleted = (categoryUuid: string) => {
+    const completed = testHistoryData?.data?.sessions?.some(
+      (session: any) => {
+        const matches = session.test?.uuid === categoryUuid || session.uuid === categoryUuid;
+        console.log(`🔍 [SeriesDetail] Checking ${categoryUuid}:`, {
+          sessionUuid: session.uuid,
+          testUuid: session.test?.uuid,
+          matches
+        });
+        return matches;
+      }
+    ) || false;
+    console.log(`✅ [SeriesDetail] Category ${categoryUuid} completed:`, completed);
+    return completed;
+  };
+
+  // Helper to check if category is accessible
+  const isCategoryAccessible = (category: DynamicCategory) => {
+    const isPaidSeries = series?.pricing_type === 'paid';
+
+    // Free series - all accessible
+    if (!isPaidSeries) return true;
+
+    // Paid series with subscription - all accessible
+    if (hasAccess) return true;
+
+    // Paid series without subscription
+    // Containers are always navigable
+    if (category.node_type === 'container') return true;
+
+    // Question holders - check is_free_in_paid_series
+    if (category.node_type === 'question_holder') {
+      return category.is_free_in_paid_series === true;
+    }
+
+    // Default: not accessible
+    return false;
+  };
+
+  const handleCategorySelect = (category: DynamicCategory) => {
+    const isAccessible = isCategoryAccessible(category);
+    const isPaidSeries = series?.pricing_type === 'paid';
+
+    // If not accessible, show modal
+    if (isPaidSeries && !isAccessible) {
+      setLockedCategoryName(category.name);
+      setShowSubscriptionModal(true);
       return;
     }
 
-    // Navigate to category detail to show proper hierarchy navigation
+    // Navigate to category detail
     router.push({
       pathname: '/test/category-detail',
       params: {
-        categoryUuid: categoryUuid,
-        categoryName: categoryTitle,
+        categoryUuid: category.uuid,
+        categoryName: category.name,
         seriesUuid: seriesUuid!,
       },
     });
   };
 
+  const handleViewPlans = () => {
+    setShowSubscriptionModal(false);
+    handlePurchase();
+  };
+
   const handlePurchase = () => {
     if (!series) return;
-    
-    // Check if user already has access or payment is pending
-    if (!buttonState.showEnrollButton || buttonState.isDisabled) {
-      if (accessData?.hasPendingPayment) {
-        Toast.show({
-          type: 'info',
-          text1: 'Payment Pending',
-          text2: 'You have a recent pending payment for this series.',
-        });
-      } else if (hasAccess) {
-        Toast.show({
-          type: 'info',
-          text1: 'Already Enrolled',
-          text2: 'You already have access to this test series.',
-        });
-      }
+
+    // Check if user already has access
+    if (hasAccess) {
+      Toast.show({
+        type: 'info',
+        text1: 'Already Enrolled',
+        text2: 'You already have access to this test series.',
+      });
       return;
     }
-    
+
+    // Navigate to payment
     router.push({
       pathname: '/payment',
       params: {
         seriesId: series.id,
-        title: series.title,
+        title: series.title || series.name,
         price: series.price,
         type: 'test-series',
       },
@@ -126,37 +171,128 @@ export default function SeriesDetailScreen() {
     }
   };
 
-  const renderCategoryCard = (category: DynamicCategory, index: number) => (
-    <TouchableOpacity
-      key={category.uuid}
-      style={styles.categoryCard}
-      onPress={() => handleCategorySelect(category.uuid, category.name)}
-    >
-      <View style={styles.categoryHeader}>
-        <View style={[styles.categoryIcon, { backgroundColor: Colors.primary }]}>
-          <Folder size={20} color={Colors.white} />
-        </View>
-        <View style={styles.categoryInfo}>
-          <Text style={[styles.categoryName, { color: Colors.textPrimary }]}>
-            {category.name}
-          </Text>
-          <View style={styles.categoryStats}>
-            <Text style={[styles.categoryStatsText, { color: Colors.textSubtle }]}>
-              {category.has_subcategories 
-                ? `${category.subcategories_count} subcategories`
-                : `${category.questions_count} questions`}
-            </Text>
+  const handleViewResults = (categoryUuid: string, categoryName: string) => {
+    router.push({
+      pathname: '/test/test-attempts',
+      params: {
+        categoryUuid,
+        categoryName,
+        seriesUuid: seriesUuid!,
+      },
+    });
+  };
+
+  const renderCategoryCard = (category: DynamicCategory, index: number) => {
+    const isPaidSeries = series?.pricing_type === 'paid';
+    const isAccessible = isCategoryAccessible(category);
+    const isQuestionHolder = category.node_type === 'question_holder';
+    const isFreeInPaid = isPaidSeries && !hasAccess && isQuestionHolder && category.is_free_in_paid_series === true;
+    const isLocked = isPaidSeries && !hasAccess && isQuestionHolder && !isAccessible;
+    const isCompleted = isCategoryCompleted(category.uuid);
+
+    // Hide unset items
+    if (category.node_type === 'unset') return null;
+
+    return (
+      <View
+        key={category.uuid}
+        style={[styles.categoryCard, isLocked && styles.lockedTestCard]}
+      >
+        <TouchableOpacity
+          style={styles.categoryHeader}
+          onPress={() => handleCategorySelect(category)}
+          activeOpacity={0.7}
+        >
+          <View style={[
+            styles.categoryIcon,
+            { backgroundColor: isLocked ? Colors.textSubtle : Colors.primary }
+          ]}>
+            {isLocked ? (
+              <Lock size={20} color={Colors.white} />
+            ) : category.node_type === 'question_holder' ? (
+              <FileQuestion size={20} color={Colors.white} />
+            ) : (
+              <Folder size={20} color={Colors.white} />
+            )}
           </View>
-          {category.description && (
-            <Text style={[styles.categoryDescription, { color: Colors.textSubtle }]}>
-              {category.description}
-            </Text>
-          )}
-        </View>
-        <ChevronRight size={20} color={Colors.textSubtle} />
+          <View style={styles.categoryInfo}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8 }}>
+              <Text style={[
+                styles.categoryName,
+                { color: isLocked ? Colors.textSubtle : Colors.textPrimary, flex: 1 }
+              ]}>
+                {category.name}
+              </Text>
+              {isCompleted && (
+                <View style={{
+                  backgroundColor: Colors.success,
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 6,
+                }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: 'white' }}>COMPLETED</Text>
+                </View>
+              )}
+              {isFreeInPaid && (
+                <View style={{
+                  backgroundColor: Colors.success,
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 6,
+                }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: 'white' }}>FREE</Text>
+                </View>
+              )}
+              {isLocked && (
+                <View style={{
+                  backgroundColor: Colors.error,
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 6,
+                }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: 'white' }}>LOCKED</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.categoryStats}>
+              <Text style={[styles.categoryStatsText, { color: Colors.textSubtle }]}>
+                {category.has_subcategories
+                  ? `${category.subcategories_count} subcategories`
+                  : `${category.questions_count} questions`}
+              </Text>
+            </View>
+            {category.description && (
+              <Text style={[styles.categoryDescription, { color: Colors.textSubtle }]}>
+                {category.description}
+              </Text>
+            )}
+          </View>
+          <ChevronRight size={20} color={isLocked ? Colors.textTertiary : Colors.textSubtle} />
+        </TouchableOpacity>
+
+        {/* Action button for question holders */}
+        {isQuestionHolder && !isLocked && (
+          <View style={styles.singleButtonContainer}>
+            {isCompleted ? (
+              <TouchableOpacity
+                style={[styles.singleActionButton, { backgroundColor: Colors.success }]}
+                onPress={() => handleViewResults(category.uuid, category.name)}
+              >
+                <Text style={styles.singleActionButtonText}>Result</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.singleActionButton, { backgroundColor: Colors.textSubtle }]}
+                onPress={() => handleCategorySelect(category)}
+              >
+                <Text style={styles.singleActionButtonText}>Take Test</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   const styles = getStyles(Colors);
 
@@ -230,6 +366,16 @@ export default function SeriesDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Subscription Required Modal */}
+      <SubscriptionRequiredModal
+        visible={showSubscriptionModal}
+        testName={lockedCategoryName}
+        seriesName={series?.name || series?.title}
+        onViewPlans={handleViewPlans}
+        onCancel={() => setShowSubscriptionModal(false)}
+        Colors={Colors}
+      />
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -272,49 +418,21 @@ export default function SeriesDetailScreen() {
             </Text>
           )}
 
-          {/* Stats Row */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Star size={16} color={Colors.warning} />
-              <Text style={[styles.statText, { color: Colors.textSubtle }]}>
-                {series.rating || 4.5} rating
-              </Text>
-            </View>
-            <View style={styles.statItem}>
-              <Users size={16} color={Colors.textSubtle} />
-              <Text style={[styles.statText, { color: Colors.textSubtle }]}>
-                {series.purchase_count || 0} enrolled
-              </Text>
-            </View>
-            <View style={styles.statItem}>
-              <Award size={16} color={Colors.textSubtle} />
-              <Text style={[styles.statText, { color: Colors.textSubtle }]}>
-                {series.difficulty_level}
-              </Text>
-            </View>
-          </View>
-
           {/* Access Information */}
           <View style={styles.accessInfo}>
             {hasAccess ? (
               <View style={[styles.accessBadge, { backgroundColor: Colors.badgeSuccessBg }]}>
                 <Text style={[styles.accessText, { color: Colors.success }]}>
-                  ✓ {accessData?.accessType === 'free' ? 'Free access available' : 'You have access to this series'}
+                  ✓ {series.pricing_type === 'free' ? 'Free access available' : 'You have access to this series'}
                 </Text>
               </View>
-            ) : accessData?.hasPendingPayment ? (
-              <View style={[styles.accessBadge, { backgroundColor: Colors.badgeWarningBg }]}>
-                <Text style={[styles.accessText, { color: Colors.warning }]}>
-                  ⏳ Payment pending - please complete payment
-                </Text>
-              </View>
-            ) : (
+            ) : series.pricing_type === 'paid' ? (
               <View style={[styles.accessBadge, { backgroundColor: Colors.badgeWarningBg }]}>
                 <Text style={[styles.accessText, { color: Colors.warning }]}>
                   🔒 Purchase required for full access
                 </Text>
               </View>
-            )}
+            ) : null}
           </View>
 
           {/* Action Buttons */}
@@ -335,67 +453,39 @@ export default function SeriesDetailScreen() {
             </View>
 
             <View style={styles.buttonContainer}>
-              {(accessData?.testSeries?.pricing_type === 'free' || series.pricing_type === 'free') && !hasAccess && (
-                <TouchableOpacity 
-                  style={[styles.freeTestButton, { borderColor: Colors.primaryLight }]}
-                  onPress={handleStartFreeTest}
-                >
-                  <Gift size={16} color={Colors.primaryLight} />
-                  <Text style={[styles.freeTestText, { color: Colors.primaryLight }]}>
-                    Try Free
-                  </Text>
-                </TouchableOpacity>
-              )}
-
               {hasAccess ? (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.continueButton, { backgroundColor: Colors.success }]}
                   onPress={() => {
                     // Navigate to first available category
                     if (categories.length > 0) {
-                      const firstCategory = categories[0];
-                      handleCategorySelect(firstCategory.uuid, firstCategory.name);
+                      handleCategorySelect(categories[0]);
                     }
                   }}
                 >
                   <Text style={[styles.continueButtonText, { color: Colors.white }]}>
-                    {accessData?.accessType === 'free' ? 'Start Learning' : 'Continue Learning'}
+                    Continue Learning
+                  </Text>
+                </TouchableOpacity>
+              ) : series.pricing_type === 'free' ? (
+                <TouchableOpacity
+                  style={[styles.continueButton, { backgroundColor: Colors.success }]}
+                  onPress={handleStartFreeTest}
+                >
+                  <Text style={[styles.continueButtonText, { color: Colors.white }]}>
+                    Start Learning
                   </Text>
                 </TouchableOpacity>
               ) : (
-                <>
-                  {buttonState.showEnrollButton ? (
-                    <TouchableOpacity 
-                      style={[
-                        styles.purchaseButton, 
-                        { 
-                          backgroundColor: buttonState.isDisabled ? Colors.textSubtle : Colors.primaryLight,
-                          opacity: buttonState.isDisabled ? 0.7 : 1
-                        }
-                      ]}
-                      onPress={handlePurchase}
-                      disabled={buttonState.isDisabled}
-                    >
-                      {buttonState.buttonType === 'pending' ? (
-                        <Clock size={16} color={Colors.white} />
-                      ) : (
-                        <Lock size={16} color={Colors.white} />
-                      )}
-                      <Text style={[styles.purchaseButtonText, { color: Colors.white }]}>
-                        {buttonState.buttonText}
-                      </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity 
-                      style={[styles.continueButton, { backgroundColor: Colors.success }]}
-                      onPress={handleStartFreeTest}
-                    >
-                      <Text style={[styles.continueButtonText, { color: Colors.white }]}>
-                        Start Learning
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </>
+                <TouchableOpacity
+                  style={[styles.purchaseButton, { backgroundColor: Colors.primaryLight }]}
+                  onPress={handlePurchase}
+                >
+                  <Lock size={16} color={Colors.white} />
+                  <Text style={[styles.purchaseButtonText, { color: Colors.white }]}>
+                    Enroll Now
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
           </View>
@@ -664,5 +754,24 @@ const getStyles = (Colors: any) => StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  singleButtonContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.muted,
+    alignItems: 'flex-end',
+  },
+  singleActionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  singleActionButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'white',
   },
 });

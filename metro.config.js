@@ -21,12 +21,63 @@ config.resolver.resolveRequest = (context, realModuleName, platform) => {
       filePath: path.resolve(__dirname, 'src/utils/pdf-web-fallback.js'),
     };
   }
-  
+
   // Use default resolver for everything else
   return context.resolveRequest(context, realModuleName, platform);
 };
 
 // Configure source extensions
 config.resolver.sourceExts = [...config.resolver.sourceExts, 'cjs'];
+
+// Enable tree-shaking for better optimization
+config.resolver.unstable_enablePackageExports = true;
+
+// Production optimizations for minification and tree-shaking
+config.transformer = {
+  ...config.transformer,
+  minifierPath: require.resolve('metro-minify-terser'),
+  minifierConfig: {
+    compress: {
+      // Remove console logs in production
+      drop_console: process.env.NODE_ENV === 'production',
+      // Remove debugger statements
+      drop_debugger: true,
+      // Remove unused code
+      dead_code: true,
+      // Optimize boolean expressions
+      booleans: true,
+      // Evaluate constant expressions
+      evaluate: true,
+      // Inline functions
+      inline: 2,
+      // Remove unreachable code
+      passes: 3,
+      // Better tree-shaking
+      unused: true,
+      side_effects: true,
+    },
+    mangle: {
+      // Mangle variable names for smaller output
+      toplevel: process.env.NODE_ENV === 'production',
+      // Better variable name compression
+      safari10: true,
+    },
+    output: {
+      // Remove comments
+      comments: false,
+      // Use ASCII-only output
+      ascii_only: true,
+      // Smaller output
+      beautify: false,
+    },
+  },
+  // Enable experimental tree-shaking
+  getTransformOptions: async () => ({
+    transform: {
+      experimentalImportSupport: true,
+      inlineRequires: true,
+    },
+  }),
+};
 
 module.exports = config;
