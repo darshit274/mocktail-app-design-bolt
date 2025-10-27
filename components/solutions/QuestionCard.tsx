@@ -5,6 +5,7 @@ import { BookOpen, Clock, CircleCheck as CheckCircle, Circle as XCircle, CircleA
 import { ThemeColors } from '@/types';
 import { createSolutionsStyles } from '@/styles/solutionsStyles';
 import { SolutionQuestion } from '@/hooks/solutions/useSolutionsData';
+import { ReportQuestionButton } from './ReportQuestionButton';
 
 interface QuestionCardProps {
   question: SolutionQuestion;
@@ -63,6 +64,7 @@ export const QuestionCard = memo<QuestionCardProps>(({
             {getStatusText(answerStatus)}
           </Text>
         </View>
+        <ReportQuestionButton questionId={question.id} Colors={Colors} />
       </View>
 
       <RenderHTML

@@ -14,19 +14,19 @@ export interface DynamicTestSeries {
   description_gujarati?: string;
   title: string; // Backwards compatibility
   is_active: boolean;
-  pricing_type: 'free' | 'paid';
+  pricing_type: 'free' | 'paid' | 'previous_years_question_papers';
   price: string;
   currency: string;
   discount_percentage: string;
   is_featured: boolean;
   created_at: string;
   updated_at: string;
-  
+
   // Dynamic hierarchy metadata
   categories_count: number;
   total_questions: number;
   is_subscribed: boolean;
-  
+
   // Backwards compatibility
   tests_count: number;
 }
@@ -131,7 +131,7 @@ export interface DynamicCategoryResponse {
         id: number;
         uuid: string;
         name: string;
-        pricing_type: 'free' | 'paid';
+        pricing_type: 'free' | 'paid' | 'previous_years_question_papers';
         is_active: boolean;
       };
       is_subscribed: boolean;

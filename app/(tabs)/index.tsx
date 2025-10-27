@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Search, Play, BookOpen, FileText, User, ShoppingBag } from 'lucide-react-native';
+import { Bell, Search, Play, BookOpen, FileText, User, ShoppingBag, File } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -19,13 +19,13 @@ export default function HomeScreen() {
   const userProfile = profileData?.data;
 
   // Memoize quick actions array to prevent recreation on every render
-  // Note: "Free Samples" (id: 2) removed - replaced with inline hierarchy navigation
-  // TODO: Add "PYQs" (Previous Year Question Papers) here in future
+  // Note: "Free Samples" removed - replaced with inline hierarchy navigation
+  // PYQs added to replace Study PDFs
   const quickActions = useMemo(() => [
     { id: 1, title: t.freeTests.title, icon: Play, color: Colors.success, route: '/free-tests' },
     { id: 2, title: 'My Series', icon: ShoppingBag, color: Colors.warning, route: '/purchased-series' },
     { id: 3, title: t.testSeries.title, icon: BookOpen, color: Colors.primary, route: '/test-series' },
-    { id: 4, title: t.pdfs.title, icon: FileText, color: Colors.primaryLight, route: '/pdfs' },
+    { id: 4, title: 'PYQs', icon: File, color: '#9333ea', route: '/pyqs' },
   ], [t, Colors]);
 
   // Memoize navigation handlers

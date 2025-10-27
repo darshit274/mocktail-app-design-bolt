@@ -31,7 +31,11 @@ export default function TestSeriesScreen() {
     search: searchQuery || undefined,
   });
 
-  const testSeries = testSeriesResponse?.data || [];
+  // Filter out PYQs - they should only appear in PYQs page
+  const allTestSeries = testSeriesResponse?.data || [];
+  const testSeries = allTestSeries.filter(
+    (series) => series.pricing_type !== 'previous_years_question_papers'
+  );
   const pagination = testSeriesResponse?.pagination;
 
   // Get subscription access data for all test series

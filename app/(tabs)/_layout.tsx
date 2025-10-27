@@ -2,7 +2,7 @@ import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Tabs } from 'expo-router';
-import { Chrome as Home, BookOpen, User, FileText, Play, Bell } from 'lucide-react-native';
+import { Chrome as Home, BookOpen, User, FileText, Play, Bell, File } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
@@ -48,9 +48,15 @@ export default function TabLayout() {
           name="pdfs"
           options={{
             title: t.navigation.pdfs,
-            tabBarIcon: ({ size, color }) => (
+            tabBarIcon: ({ size, color}) => (
               <FileText size={size} color={color} />
             ),
+          }}
+        />
+        <Tabs.Screen
+          name="pyqs"
+          options={{
+            href: null, // Hide from tab bar but keep accessible via direct navigation
           }}
         />
         <Tabs.Screen

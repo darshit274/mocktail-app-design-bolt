@@ -6,3 +6,5 @@ export { ReattemptStatus } from './ReattemptStatus';
 export { ExplanationCard } from './ExplanationCard';
 export { SolutionNavigation } from './SolutionNavigation';
 export { QuestionNavigatorGrid } from './QuestionNavigatorGrid';
+export { ReportQuestionButton } from './ReportQuestionButton';
+export { ReportQuestionModal } from './ReportQuestionModal';
