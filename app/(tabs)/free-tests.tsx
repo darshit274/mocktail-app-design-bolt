@@ -116,50 +116,9 @@ export default function FreeTestsScreen() {
       <View style={styles.testHeader}>
         <View style={styles.testTitleContainer}>
           <Text style={styles.testTitle}>{test.title}</Text>
-          <Text style={styles.testDescription}>{test.description}</Text>
-        </View>
-        <View style={styles.tagsContainer}>
-          <View style={[styles.tag, { backgroundColor: Colors.success + '20' }]}>
-            <Text style={[styles.tagText, { color: Colors.success }]}>
-              {t.freeTests.free || 'Free'}
-            </Text>
-          </View>
-          {test.is_featured && (
-            <View style={[styles.tag, { backgroundColor: Colors.warning + '20' }]}>
-              <Text style={[styles.tagText, { color: Colors.warning }]}>
-                {t.freeTests.featured || 'Featured'}
-              </Text>
-            </View>
+          {test.description && (
+            <Text style={styles.testDescription}>{test.description}</Text>
           )}
-          <View style={[styles.tag, { backgroundColor: Colors.primary + '20' }]}>
-            <Text style={[styles.tagText, { color: Colors.primary }]}>
-              {test.category}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.testStats}>
-        <View style={styles.statItem}>
-          <BookOpen size={16} color={Colors.textSubtle} />
-          <Text style={styles.statText}>{test.total_questions} {t.freeTests.questions}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Clock size={16} color={Colors.textSubtle} />
-          <Text style={styles.statText}>{test.duration} {t.freeTests.minutes}</Text>
-        </View>
-        {test.user_attempts !== undefined && (
-          <View style={styles.statItem}>
-            <Users size={16} color={Colors.textSubtle} />
-            <Text style={styles.statText}>
-              {test.user_attempts}/{test.attempts_allowed} {t.freeTests.attempts}
-            </Text>
-          </View>
-        )}
-        <View style={[styles.difficultyBadge, { borderColor: getDifficultyColor(test.difficulty) }]}>
-          <Text style={[styles.difficultyText, { color: getDifficultyColor(test.difficulty) }]}>
-            {test.difficulty ? test.difficulty.charAt(0).toUpperCase() + test.difficulty.slice(1) : 'Medium'}
-          </Text>
         </View>
       </View>
 
@@ -364,10 +323,10 @@ const getStyles = (Colors: any) => StyleSheet.create({
     elevation: 3,
   },
   testHeader: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   testTitleContainer: {
-    marginBottom: 12,
+    marginBottom: 0,
   },
   testTitle: {
     fontSize: 18,
