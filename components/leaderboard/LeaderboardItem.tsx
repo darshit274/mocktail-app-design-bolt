@@ -90,10 +90,15 @@ export const LeaderboardItem = memo<LeaderboardItemProps>(({
   const formattedTime = useMemo(() => {
     const hours = Math.floor(item.timeTaken / 3600);
     const minutes = Math.floor((item.timeTaken % 3600) / 60);
+    const seconds = item.timeTaken % 60;
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
-    return `${minutes}m`;
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
   }, [item.timeTaken]);
 
   // Get rank icon based on position (memoized)

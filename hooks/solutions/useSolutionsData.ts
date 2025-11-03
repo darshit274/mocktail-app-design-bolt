@@ -24,10 +24,19 @@ interface UseSolutionsDataReturn {
   isCategoryQuiz: boolean;
 }
 
-export const useSolutionsData = (): UseSolutionsDataReturn => {
+export const useSolutionsData = (selectedLanguage?: 'english' | 'gujarati'): UseSolutionsDataReturn => {
   const params = useLocalSearchParams();
   const { sessionId, categoryUuid } = params;
   const { t } = useLanguage();
+
+  // Use selectedLanguage parameter if provided, otherwise fall back to context language
+  const effectiveLanguage = selectedLanguage || t.language;
+
+  console.log('[useSolutionsData] Language settings:', {
+    selectedLanguage,
+    tLanguage: t.language,
+    effectiveLanguage
+  });
 
   // Determine quiz type
   const isCategoryQuiz = !!categoryUuid;
@@ -60,7 +69,7 @@ export const useSolutionsData = (): UseSolutionsDataReturn => {
     if (!apiQuestions) return [];
 
     return apiQuestions.map((q, index) => {
-      const useGujarati = t.language === 'gujarati';
+      const useGujarati = effectiveLanguage === 'gujarati';
 
       // Get question text with fallback
       const questionText = useGujarati
@@ -102,8 +111,17 @@ export const useSolutionsData = (): UseSolutionsDataReturn => {
   const transformCategorySolutions = (solutions: any[]): SolutionQuestion[] => {
     if (!solutions) return [];
 
+    console.log('[transformCategorySolutions] Transforming with language:', effectiveLanguage);
+
     return solutions.map((solution, index) => {
-      const useGujarati = t.language === 'gujarati';
+      const useGujarati = effectiveLanguage === 'gujarati';
+
+      console.log('[transformCategorySolutions] Question', index + 1, ':', {
+        useGujarati,
+        effectiveLanguage,
+        questionText: solution.question_text,
+        options: solution.options
+      });
 
       // Helper to extract value from both format or fallback
       const extractValue = (value: any, gujaratiBackup?: any) => {
@@ -159,7 +177,7 @@ export const useSolutionsData = (): UseSolutionsDataReturn => {
     } else {
       return transformQuestions(reviewData?.data?.questions || []);
     }
-  }, [isCategoryQuiz, categoryData, reviewData, t.language]);
+  }, [isCategoryQuiz, categoryData, reviewData, effectiveLanguage]);
 
   return {
     questions,

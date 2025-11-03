@@ -10,6 +10,7 @@ import { View, ScrollView, Alert, ActivityIndicator, Text, BackHandler, Modal, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSelector } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootState } from '@/store/store';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -120,28 +121,48 @@ export default function WebQuizScreen() {
   // Submit quiz handler
   const handleSubmitQuiz = React.useCallback(async () => {
     quizLogger.info('Submit Quiz clicked');
+    quizLogger.debug('Initial state check', {
+      hasUser: !!user,
+      userUuid: user?.uuid,
+      seriesUuid,
+      categoryUuid
+    });
 
-    // Get user UUID
+    // Get user UUID - try Redux first, then AsyncStorage
     let userUuid = user?.uuid;
-    if (!userUuid && typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
+    if (!userUuid) {
+      quizLogger.info('User not in Redux, attempting to get from AsyncStorage');
+      try {
+        const storedUserData = await AsyncStorage.getItem('user');
+        if (storedUserData) {
+          const parsedUser = JSON.parse(storedUserData);
           userUuid = parsedUser.uuid || parsedUser.id;
-        } catch (e) {
-          quizLogger.error('Failed to parse stored user', e);
+          quizLogger.info('User retrieved from AsyncStorage', { userUuid });
+        } else {
+          quizLogger.warn('No user found in AsyncStorage');
         }
+      } catch (e) {
+        quizLogger.error('Failed to retrieve user from AsyncStorage', e);
       }
+    } else {
+      quizLogger.info('User found in Redux', { userUuid });
     }
 
     if (!userUuid) {
-      Alert.alert('Error', 'User not authenticated. Please login again.');
+      quizLogger.error('User authentication failed - no userUuid found in Redux or AsyncStorage');
+      Alert.alert('Authentication Required', 'Please login again to submit the quiz.');
       return;
     }
 
     if (!seriesUuid) {
+      quizLogger.error('Series UUID not found');
       Alert.alert('Error', 'Series UUID not found');
+      return;
+    }
+
+    if (!categoryUuid) {
+      quizLogger.error('Category UUID not found');
+      Alert.alert('Error', 'Category UUID not found');
       return;
     }
 
@@ -199,6 +220,9 @@ export default function WebQuizScreen() {
         percentage
       });
 
+      // Calculate time taken in seconds
+      const timeTakenSeconds = testDurationSeconds - timer.timeRemaining;
+
       // Navigate to results
       router.replace({
         pathname: '/test/results',
@@ -217,13 +241,23 @@ export default function WebQuizScreen() {
           negativeMarkingEnabled: (negativeMarks > 0).toString(),
           negativeMarks: negativeMarks.toString(),
           finalScore: finalScore.toString(),
+          selectedLanguage: quizState.selectedQuizLanguage, // Pass selected language
+          totalTimeTaken: timeTakenSeconds.toString(), // Pass time taken
         },
       });
-    } catch (error) {
-      quizLogger.error('Web Quiz submission failed', error);
-      Alert.alert('Error', 'Failed to submit quiz. Please try again.');
+    } catch (error: any) {
+      quizLogger.error('Web Quiz submission failed', {
+        error: error?.message || error,
+        errorData: error?.data,
+        errorStatus: error?.status
+      });
+      console.error('Full submission error:', error);
+
+      const errorMessage = error?.data?.message || error?.message || 'Failed to submit quiz. Please try again.';
+      Alert.alert('Submission Error', errorMessage);
     } finally {
       quizState.setIsSubmitting(false);
+      quizLogger.info('Submission process complete, isSubmitting set to false');
     }
   }, [user, seriesUuid, categoryUuid, categoryName, quizState, submitQuizWeb, timer.timeRemaining, testDurationSeconds]);
 
@@ -248,7 +282,9 @@ export default function WebQuizScreen() {
   };
 
   const handleSubmitConfirm = () => {
+    quizLogger.info('Submit confirmation - YES button clicked');
     quizState.setShowSubmitConfirmation(false);
+    quizLogger.info('Confirmation modal closed, calling handleSubmitQuiz');
     handleSubmitQuiz();
   };
 
@@ -353,6 +389,8 @@ export default function WebQuizScreen() {
           onSelectQuestion={handleSelectQuestion}
           onClose={() => quizState.setShowGrid(false)}
           onSubmit={confirmAndSubmitQuiz}
+          selectedLanguage={quizState.selectedQuizLanguage}
+          onLanguageChange={quizState.setSelectedQuizLanguage}
           Colors={Colors}
         />
       </SafeAreaView>

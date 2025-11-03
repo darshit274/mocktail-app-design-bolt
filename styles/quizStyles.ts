@@ -241,6 +241,33 @@ export const createQuizStyles = (Colors: ThemeColors) => StyleSheet.create({
     color: Colors.primary,
   },
 
+  // Language Selector
+  languageSelector: {
+    flexDirection: 'row',
+    backgroundColor: Colors.light,
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 16,
+  },
+  languageButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  languageButtonActive: {
+    backgroundColor: Colors.primary,
+  },
+  languageButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textSubtle,
+  },
+  languageButtonTextActive: {
+    color: Colors.white,
+  },
+
   // Grid Legend
   legendContainer: {
     flexDirection: 'row',

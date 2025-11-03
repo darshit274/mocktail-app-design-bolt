@@ -193,7 +193,7 @@ export const createLogger = (moduleName: string) => {
     debug: (message: string, data?: any) => debug(prefixMessage(message), data),
     info: (message: string, data?: any) => info(prefixMessage(message), data),
     warn: (message: string, data?: any) => warn(prefixMessage(message), data),
-    error: (message: string, error?: Error | any) => error(prefixMessage(message), error),
+    error: (message: string, errorData?: Error | any) => error(prefixMessage(message), errorData),
   };
 };
 

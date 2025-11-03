@@ -11,6 +11,8 @@ interface QuestionNavigatorGridProps {
   getStatusColor: (status: string) => string;
   onQuestionSelect: (index: number) => void;
   onClose: () => void;
+  selectedLanguage: 'english' | 'gujarati';
+  onLanguageChange: (language: 'english' | 'gujarati') => void;
   Colors: ThemeColors;
 }
 
@@ -21,6 +23,8 @@ export const QuestionNavigatorGrid = memo<QuestionNavigatorGridProps>(({
   getStatusColor,
   onQuestionSelect,
   onClose,
+  selectedLanguage,
+  onLanguageChange,
   Colors
 }) => {
   const styles = createSolutionsStyles(Colors);
@@ -31,6 +35,38 @@ export const QuestionNavigatorGrid = memo<QuestionNavigatorGridProps>(({
         <Text style={styles.gridTitle}>Question Navigator</Text>
         <TouchableOpacity onPress={onClose}>
           <Text style={styles.gridClose}>Close</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Language Selector */}
+      <View style={styles.languageSelector}>
+        <TouchableOpacity
+          style={[
+            styles.languageButton,
+            selectedLanguage === 'english' && styles.languageButtonActive
+          ]}
+          onPress={() => onLanguageChange('english')}
+        >
+          <Text style={[
+            styles.languageButtonText,
+            selectedLanguage === 'english' && styles.languageButtonTextActive
+          ]}>
+            English
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.languageButton,
+            selectedLanguage === 'gujarati' && styles.languageButtonActive
+          ]}
+          onPress={() => onLanguageChange('gujarati')}
+        >
+          <Text style={[
+            styles.languageButtonText,
+            selectedLanguage === 'gujarati' && styles.languageButtonTextActive
+          ]}>
+            ગુજરાતી
+          </Text>
         </TouchableOpacity>
       </View>
 

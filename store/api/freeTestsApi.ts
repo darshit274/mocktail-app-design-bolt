@@ -151,17 +151,68 @@ export const freeTestsApi = createApi({
     getFreeTests: builder.query<FreeTestListResponse, FreeTestListParams>({
       query: (params = {}) => {
         const searchParams = new URLSearchParams();
-        
+
+        // Map app params to web API format
+        const paramMapping: Record<string, string> = {
+          'page': 'page',
+          'limit': 'limit',
+          'search': 'search',
+          'category': 'category',
+          'sortBy': 'sort', // Web uses 'sort' instead of 'sortBy'
+        };
+
         Object.entries(params).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== '') {
-            searchParams.append(key, value.toString());
+            // Map sortOrder values: DESC -> newest, ASC -> oldest
+            if (key === 'sortOrder') {
+              const sortValue = value === 'DESC' ? 'newest' : 'oldest';
+              searchParams.set('sort', sortValue);
+            } else {
+              const mappedKey = paramMapping[key] || key;
+              searchParams.append(mappedKey, value.toString());
+            }
           }
         });
 
         return {
-          url: `/free-tests?${searchParams.toString()}`,
+          url: `/tests/free?${searchParams.toString()}`,
           method: 'GET',
         };
+      },
+      transformResponse: (response: any) => {
+        // Transform API response to match app expectations
+        if (response.success && response.data) {
+          const transformedData = response.data.map((test: any) => ({
+            ...test,
+            // Map difficulty_level to difficulty
+            difficulty: test.difficulty_level === 'beginner' ? 'easy' :
+                       test.difficulty_level === 'intermediate' ? 'medium' :
+                       test.difficulty_level === 'advanced' ? 'hard' : 'medium',
+            // Ensure required fields exist
+            category: test.category || 'General',
+            subject: test.subject || 'General',
+            duration: test.duration_minutes || 60,
+            total_questions: test.total_questions || 0,
+            marks_per_question: 1,
+            negative_marks: test.has_negative_marking ? (test.negative_marks || 0.25) : 0,
+            language: 'en',
+            is_active: test.is_active !== undefined ? test.is_active : true,
+            is_featured: test.is_featured || false,
+            attempts_allowed: test.max_attempts_per_test || 3,
+          }));
+
+          return {
+            success: true,
+            data: transformedData,
+            pagination: response.pagination || {
+              total: transformedData.length,
+              page: 1,
+              limit: transformedData.length,
+              totalPages: 1,
+            }
+          };
+        }
+        return response;
       },
       providesTags: (result) =>
         result?.data

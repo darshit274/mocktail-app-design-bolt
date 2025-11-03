@@ -55,7 +55,8 @@ export default function FreeTestsScreen() {
   const freeTests = testsData?.data || [];
   const pagination = testsData?.pagination;
 
-  const getDifficultyColor = (difficulty: string) => {
+  const getDifficultyColor = (difficulty: string | undefined) => {
+    if (!difficulty) return Colors.textSubtle;
     switch (difficulty.toLowerCase()) {
       case 'easy': return Colors.success;
       case 'medium': return Colors.warning;
@@ -65,12 +66,13 @@ export default function FreeTestsScreen() {
   };
 
   const handleStartTest = (test: FreeTest) => {
+    // Free tests are actually test series - navigate to series detail page
+    // which shows the categories available in the series
     router.push({
-      pathname: '/test/quiz',
+      pathname: '/test/series-detail',
       params: {
-        testId: test.id,
-        testType: 'free',
-        title: test.title,
+        seriesUuid: test.uuid,
+        title: test.title || test.name,
       },
     });
   };
@@ -156,7 +158,7 @@ export default function FreeTestsScreen() {
         )}
         <View style={[styles.difficultyBadge, { borderColor: getDifficultyColor(test.difficulty) }]}>
           <Text style={[styles.difficultyText, { color: getDifficultyColor(test.difficulty) }]}>
-            {test.difficulty.charAt(0).toUpperCase() + test.difficulty.slice(1)}
+            {test.difficulty ? test.difficulty.charAt(0).toUpperCase() + test.difficulty.slice(1) : 'Medium'}
           </Text>
         </View>
       </View>

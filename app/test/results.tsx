@@ -66,6 +66,7 @@ export default function TestResultsScreen() {
         testTitle: resultsData.testTitle || 'Test Solutions',
         categoryUuid: params.categoryUuid,
         categoryName: params.categoryName,
+        selectedLanguage: params.selectedLanguage || 'gujarati', // Pass selected language
       },
     });
   }, [params, resultsData.testTitle]);

@@ -218,7 +218,8 @@ export default function CategoryDetailScreen() {
       contentLength: Array.isArray(content) ? content.length : 'not array',
       pricing_type: categoryData?.data?.category?.testSeries?.pricing_type,
       hasSeriesAccess,
-      checkingAccess
+      checkingAccess,
+      is_free_in_paid_series: category.is_free_in_paid_series
     });
 
     // Check if category has questions first
@@ -233,8 +234,16 @@ export default function CategoryDetailScreen() {
     }
 
     // Check if this is a paid series and user has access
-    if (categoryData?.data?.category?.testSeries?.pricing_type === 'paid' && !hasSeriesAccess) {
-      categoryLogger.warn('Subscription required for quiz access');
+    // IMPORTANT: Free-in-paid categories should be accessible even without subscription
+    const isPaidSeries = categoryData?.data?.category?.testSeries?.pricing_type === 'paid';
+    const isFreeInPaid = category.is_free_in_paid_series === true;
+
+    if (isPaidSeries && !hasSeriesAccess && !isFreeInPaid) {
+      categoryLogger.warn('Subscription required for quiz access', {
+        isPaidSeries,
+        hasSeriesAccess,
+        isFreeInPaid
+      });
       Alert.alert(
         'Subscription Required',
         'This test requires a subscription. Please purchase the test series to access this content.',
@@ -256,7 +265,11 @@ export default function CategoryDetailScreen() {
     }
 
     // All checks passed, navigate to quiz
-    categoryLogger.info('All checks passed, navigating to quiz');
+    categoryLogger.info('All checks passed, navigating to quiz', {
+      isPaidSeries,
+      hasSeriesAccess,
+      isFreeInPaid: isFreeInPaid || 'N/A'
+    });
     router.push({
       pathname: '/test/quiz',
       params: {

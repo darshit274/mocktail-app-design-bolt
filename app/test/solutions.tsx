@@ -37,9 +37,18 @@ export default function SolutionsScreen() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showAnswers, setShowAnswers] = useState<{ [key: number]: boolean }>({});
   const [showGrid, setShowGrid] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<'english' | 'gujarati'>(
+    (params.selectedLanguage as 'english' | 'gujarati') || 'gujarati'
+  );
+
+  console.log('[SolutionsScreen] Params and language:', {
+    allParams: params,
+    selectedLanguageParam: params.selectedLanguage,
+    selectedLanguageState: selectedLanguage
+  });
 
   // Custom hooks
-  const { questions, isLoading, error } = useSolutionsData();
+  const { questions, isLoading, error } = useSolutionsData(selectedLanguage);
   const practiceMode = usePracticeMode();
 
   // Handlers
@@ -168,6 +177,8 @@ export default function SolutionsScreen() {
           getStatusColor={getStatusColor}
           onQuestionSelect={setCurrentQuestion}
           onClose={() => setShowGrid(false)}
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={setSelectedLanguage}
           Colors={Colors}
         />
       </SafeAreaView>

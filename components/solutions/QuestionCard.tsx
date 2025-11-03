@@ -58,11 +58,16 @@ export const QuestionCard = memo<QuestionCardProps>(({
   return (
     <View style={styles.questionCard}>
       <View style={styles.questionHeader}>
-        <View style={styles.statusContainer}>
-          {getStatusIcon(answerStatus)}
-          <Text style={[styles.statusText, { color: getStatusColor(answerStatus) }]}>
-            {getStatusText(answerStatus)}
-          </Text>
+        <View style={styles.questionMeta}>
+          <View style={styles.subjectBadge}>
+            <BookOpen size={14} color={Colors.primary} />
+            <Text style={styles.subjectText}>{question.subject}</Text>
+          </View>
+          <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(question.difficulty) }]}>
+            <Text style={[styles.difficultyText, { color: getDifficultyTextColor(question.difficulty) }]}>
+              {question.difficulty}
+            </Text>
+          </View>
         </View>
         <ReportQuestionButton questionId={question.id} Colors={Colors} />
       </View>

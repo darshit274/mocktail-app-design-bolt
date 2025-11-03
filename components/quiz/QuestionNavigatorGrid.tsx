@@ -18,6 +18,8 @@ interface QuestionNavigatorGridProps {
   onSelectQuestion: (index: number) => void;
   onClose: () => void;
   onSubmit: () => void;
+  selectedLanguage?: 'english' | 'gujarati';
+  onLanguageChange?: (language: 'english' | 'gujarati') => void;
   Colors: ThemeColors;
 }
 
@@ -29,8 +31,16 @@ export const QuestionNavigatorGrid = memo<QuestionNavigatorGridProps>(({
   onSelectQuestion,
   onClose,
   onSubmit,
+  selectedLanguage,
+  onLanguageChange,
   Colors
 }) => {
+  console.log('[QuizQuestionNavigatorGrid] Props:', {
+    selectedLanguage,
+    onLanguageChange: !!onLanguageChange,
+    willShowLanguageSelector: !!(selectedLanguage && onLanguageChange)
+  });
+
   // Memoize styles to prevent recreation on every render
   const styles = useMemo(() => createQuizStyles(Colors), [Colors]);
 
@@ -67,6 +77,40 @@ export const QuestionNavigatorGrid = memo<QuestionNavigatorGridProps>(({
           <Text style={styles.gridClose}>Close</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Language Selector - only show if callbacks are provided */}
+      {selectedLanguage && onLanguageChange && (
+        <View style={styles.languageSelector}>
+          <TouchableOpacity
+            style={[
+              styles.languageButton,
+              selectedLanguage === 'english' && styles.languageButtonActive
+            ]}
+            onPress={() => onLanguageChange('english')}
+          >
+            <Text style={[
+              styles.languageButtonText,
+              selectedLanguage === 'english' && styles.languageButtonTextActive
+            ]}>
+              English
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.languageButton,
+              selectedLanguage === 'gujarati' && styles.languageButtonActive
+            ]}
+            onPress={() => onLanguageChange('gujarati')}
+          >
+            <Text style={[
+              styles.languageButtonText,
+              selectedLanguage === 'gujarati' && styles.languageButtonTextActive
+            ]}>
+              ગુજરાતી
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Legend */}
       <View style={styles.legendContainer}>

@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trophy, Medal, Award, TrendingUp, Calendar, ChevronLeft, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -14,12 +16,13 @@ import logger from '@/utils/logger';
 const leaderboardLogger = logger.createLogger('Leaderboard');
 
 export default function TestLeaderboardScreen() {
-  const [selectedPeriod, setSelectedPeriod] = useState('This Test');
   const { theme } = useTheme();
   const { t } = useLanguage();
+  const { user } = useSelector((state: RootState) => state.auth);
   const Colors = getTheme(theme);
   const params = useLocalSearchParams();
   leaderboardLogger.debug('Leaderboard params', params);
+  leaderboardLogger.debug('Current user:', user);
 
   // Get the test series UUID from params (should come from navigation)
   const testSeriesUuid = params.seriesUuid || params.categoryUuid || '4d7c05cd-f70e-4717-a631-5f1e85756a5c';
@@ -36,6 +39,15 @@ export default function TestLeaderboardScreen() {
     { skip: !testSeriesUuid }
   );
 
+  // Debug logging
+  console.log('[Leaderboard] API Response:', {
+    success: leaderboardResponse?.success,
+    dataLength: leaderboardResponse?.data?.length,
+    firstThree: leaderboardResponse?.data?.slice(0, 3),
+    loading: loadingLeaderboard,
+    error: leaderboardError
+  });
+
   // Memoize periods array to prevent recreation
   const periods = useMemo(() => [
     { key: 'This Test', label: t.leaderboard.periods.thisTest },
@@ -44,112 +56,77 @@ export default function TestLeaderboardScreen() {
     { key: 'All Time', label: t.leaderboard.periods.allTime }
   ], [t]);
 
-  // Memoize test info
-  const testInfo = useMemo(() => ({
-    title: 'PSI Mock Test 1',
-    totalParticipants: 1250,
-    averageScore: 68.5,
-    completionRate: 89.2
-  }), []);
 
-  // Memoize top performers array (would typically come from API)
-  const topPerformers = useMemo(() => [
-    {
-      id: 1,
-      name: 'Rajesh Kumar',
-      score: 95,
-      avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-      timeTaken: 5400, // 90 minutes
-      accuracy: 95.0,
-      rank: 1,
-    },
-    {
-      id: 2,
-      name: 'Priya Sharma',
-      score: 92,
-      avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-      timeTaken: 5100, // 85 minutes
-      accuracy: 92.0,
-      rank: 2,
-    },
-    {
-      id: 3,
-      name: 'Amit Patel',
-      score: 89,
-      avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-      timeTaken: 4800, // 80 minutes
-      accuracy: 89.0,
-      rank: 3,
-    },
-  ], []);
+  // Get top 3 performers from API data
+  const topPerformers = useMemo(() => {
+    console.log('[Leaderboard] Computing topPerformers:', {
+      hasResponse: !!leaderboardResponse,
+      success: leaderboardResponse?.success,
+      hasData: !!leaderboardResponse?.data,
+      dataLength: leaderboardResponse?.data?.length
+    });
 
-  // Memoize leaderboard data array (would typically come from API)
-  const leaderboardData = useMemo(() => [
-    {
-      id: 4,
-      name: 'Sneha Reddy',
-      score: 86,
-      avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-      timeTaken: 5700,
-      accuracy: 86.0,
-      rank: 4,
-    },
-    {
-      id: 5,
-      name: 'Vikram Singh',
-      score: 84,
-      avatar: 'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-      timeTaken: 5200,
-      accuracy: 84.0,
-      rank: 5,
-    },
-    {
-      id: 6,
-      name: 'Anita Gupta',
-      score: 82,
-      avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-      timeTaken: 5900,
-      accuracy: 82.0,
-      rank: 6,
-    },
-    {
-      id: 7,
-      name: 'Rohit Mehta',
-      score: 80,
-      avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-      timeTaken: 6100,
-      accuracy: 80.0,
-      rank: 7,
-    },
-    {
-      id: 8,
-      name: 'Kavya Nair',
-      score: 78,
-      avatar: 'https://images.pexels.com/photos/1036623/pexels-photo-1036623.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-      timeTaken: 5800,
-      accuracy: 78.0,
-      rank: 8,
-    },
-  ], []);
+    if (!leaderboardResponse?.success || !leaderboardResponse.data || leaderboardResponse.data.length === 0) {
+      console.log('[Leaderboard] No data available for top performers');
+      return [];
+    }
+    // Return top 3 from API
+    const top3 = leaderboardResponse.data.slice(0, 3);
+    console.log('[Leaderboard] Top 3 performers:', top3);
+    return top3;
+  }, [leaderboardResponse]);
 
-  // Memoize current user rank
-  const currentUserRank = useMemo(() => ({
-    name: t.leaderboard.you,
-    score: 72,
-    rank: 15,
-    timeTaken: 6300,
-    accuracy: 72.0,
-    percentile: 85.2,
-  }), [t]);
+  // Find current user's rank in the leaderboard data
+  const currentUserRank = useMemo(() => {
+    if (!leaderboardResponse?.success || !leaderboardResponse.data || !user) {
+      console.log('[Leaderboard] Cannot compute currentUserRank:', {
+        hasResponse: !!leaderboardResponse,
+        hasData: !!leaderboardResponse?.data,
+        hasUser: !!user
+      });
+      return null;
+    }
+
+    // Find the current user in the leaderboard by userId
+    const userEntry = leaderboardResponse.data.find(entry =>
+      entry.userId === user.id || entry.userId === user.uuid
+    );
+
+    console.log('[Leaderboard] Current user rank search:', {
+      userId: user.id,
+      userUuid: user.uuid,
+      found: !!userEntry,
+      userEntry
+    });
+
+    if (!userEntry) {
+      return null;
+    }
+
+    return {
+      rank: userEntry.rank,
+      name: userEntry.name || user.username || t.leaderboard.you,
+      score: userEntry.percentage || userEntry.totalScore,
+      percentage: userEntry.percentage,
+      accuracy: userEntry.percentage, // Using percentage as accuracy
+      timeTaken: userEntry.timeTaken,
+      timeSpent: userEntry.timeTaken
+    };
+  }, [leaderboardResponse, user, t]);
 
   // Memoize formatTime helper for podium display
   const formatTime = useCallback((seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
-    return `${minutes}m`;
+    if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    }
+    return `${secs}s`;
   }, []);
 
   // Memoize styles to prevent recalculation on every render
@@ -179,7 +156,7 @@ export default function TestLeaderboardScreen() {
     );
   }, [Colors]);
 
-  // Render list header with podium and stats
+  // Render list header - simplified version
   const renderListHeader = useCallback(() => (
     <>
       {/* Header */}
@@ -192,139 +169,42 @@ export default function TestLeaderboardScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{t.leaderboard.title}</Text>
-          <Text style={styles.headerSubtitle}>{testInfo.title}</Text>
         </View>
-        <TouchableOpacity style={styles.calendarButton}>
-          <Calendar size={20} color={Colors.textSubtle} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Test Stats */}
-      <View style={styles.statsContainer}>
-        <LinearGradient
-          colors={[Colors.primary, Colors.primaryLight]}
-          style={styles.statsCard}
-        >
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{testInfo.totalParticipants}</Text>
-              <Text style={styles.statLabel}>{t.leaderboard.participants}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{testInfo.averageScore}%</Text>
-              <Text style={styles.statLabel}>{t.leaderboard.averageScore}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{testInfo.completionRate}%</Text>
-              <Text style={styles.statLabel}>{t.leaderboard.completionRate}</Text>
-            </View>
-          </View>
-        </LinearGradient>
-      </View>
-
-      {/* Period Selection */}
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.periodContainer}
-        data={periods}
-        keyExtractor={(item) => item.key}
-        renderItem={({ item: period }) => (
-          <TouchableOpacity
-            style={[
-              styles.periodChip,
-              selectedPeriod === period.key && styles.periodChipActive
-            ]}
-            onPress={() => setSelectedPeriod(period.key)}
-          >
-            <Text style={[
-              styles.periodText,
-              selectedPeriod === period.key && styles.periodTextActive
-            ]}>
-              {period.label}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
-
-      {/* Top 3 Performers */}
-      <View style={styles.topPerformersContainer}>
-        <Text style={styles.sectionTitle}>{t.leaderboard.topPerformers}</Text>
-        <View style={styles.podiumContainer}>
-          {/* 2nd Place */}
-          <View style={styles.podiumItem}>
-            <LinearGradient
-              colors={[Colors.primary, Colors.accent]}
-              style={[styles.podiumRank, styles.secondPlace]}
-            >
-              <Image source={{ uri: topPerformers[1].avatar }} style={styles.podiumAvatar} />
-              <Medal size={20} color={Colors.premiumBadge} />
-            </LinearGradient>
-            <Text style={styles.podiumName}>{topPerformers[1].name}</Text>
-            <Text style={styles.podiumScore}>{topPerformers[1].score}%</Text>
-            <Text style={styles.podiumTime}>{formatTime(topPerformers[1].timeTaken)}</Text>
-          </View>
-
-          {/* 1st Place */}
-          <View style={[styles.podiumItem, styles.firstPlaceItem]}>
-            <LinearGradient
-              colors={[Colors.primary, Colors.chip]}
-              style={[styles.podiumRank, styles.firstPlace]}
-            >
-              <Image source={{ uri: topPerformers[0].avatar }} style={styles.podiumAvatar} />
-              <Crown size={24} color={Colors.premiumText} />
-            </LinearGradient>
-            <Text style={styles.podiumName}>{topPerformers[0].name}</Text>
-            <Text style={styles.podiumScore}>{topPerformers[0].score}%</Text>
-            <Text style={styles.podiumTime}>{formatTime(topPerformers[0].timeTaken)}</Text>
-          </View>
-
-          {/* 3rd Place */}
-          <View style={styles.podiumItem}>
-            <LinearGradient
-              colors={[Colors.primary, Colors.textLink]}
-              style={[styles.podiumRank, styles.thirdPlace]}
-            >
-              <Image source={{ uri: topPerformers[2].avatar }} style={styles.podiumAvatar} />
-              <Award size={20} color={Colors.primaryLight} />
-            </LinearGradient>
-            <Text style={styles.podiumName}>{topPerformers[2].name}</Text>
-            <Text style={styles.podiumScore}>{topPerformers[2].score}%</Text>
-            <Text style={styles.podiumTime}>{formatTime(topPerformers[2].timeTaken)}</Text>
-          </View>
-        </View>
+        <View style={styles.headerRight} />
       </View>
 
       {/* Your Rank */}
-      <View style={styles.yourRankContainer}>
-        <Text style={styles.sectionTitle}>{t.leaderboard.yourPerformance}</Text>
-        <LinearGradient
-          colors={[Colors.primaryExtraLight, Colors.white]}
-          style={styles.yourRankCard}
-        >
-          <View style={styles.rankInfo}>
-            <View style={styles.rankBadge}>
-              <Text style={styles.rankNumber}>{currentUserRank.rank}</Text>
+      {currentUserRank && (
+        <View style={styles.yourRankContainer}>
+          <Text style={styles.sectionTitle}>{t.leaderboard.yourPerformance}</Text>
+          <LinearGradient
+            colors={[Colors.primaryExtraLight, Colors.white]}
+            style={styles.yourRankCard}
+          >
+            <View style={styles.rankInfo}>
+              <View style={styles.rankBadge}>
+                <Text style={styles.rankNumber}>{currentUserRank.rank}</Text>
+              </View>
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>{currentUserRank.name || t.leaderboard.you}</Text>
+                <Text style={styles.userStats}>
+                  {currentUserRank.accuracy}% {t.leaderboard.accuracy} • {formatTime(currentUserRank.timeTaken || currentUserRank.timeSpent || 0)}
+                </Text>
+              </View>
             </View>
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{currentUserRank.name}</Text>
-              <Text style={styles.userStats}>
-                {currentUserRank.accuracy}% {t.leaderboard.accuracy} • {formatTime(currentUserRank.timeTaken)}
-              </Text>
+            <View style={styles.scoreInfo}>
+              <Text style={styles.userScore}>{currentUserRank.score || currentUserRank.percentage || 0}%</Text>
             </View>
-          </View>
-          <View style={styles.scoreInfo}>
-            <Text style={styles.userScore}>{currentUserRank.score}%</Text>
-          </View>
-        </LinearGradient>
-      </View>
+          </LinearGradient>
+        </View>
+      )}
 
       {/* Full Leaderboard Title */}
       <View style={styles.leaderboardContainer}>
         <Text style={styles.sectionTitle}>{t.leaderboard.allRankings}</Text>
       </View>
     </>
-  ), [Colors, t, testInfo, periods, selectedPeriod, topPerformers, currentUserRank, formatTime, styles, setSelectedPeriod]);
+  ), [Colors, t, currentUserRank, formatTime, styles]);
 
   // Prepare data for FlatList
   const leaderboardListData = useMemo(() => {

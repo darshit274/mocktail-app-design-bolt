@@ -45,6 +45,7 @@ export const useResultsData = (): ResultsData => {
     negativeMarkingEnabled,
     negativeMarks,
     finalScore,
+    totalTimeTaken,
   } = params;
 
   // Fetch from API if sessionId is provided
@@ -123,7 +124,7 @@ export const useResultsData = (): ResultsData => {
     negativeMarks: (negativeMarks as string) || (incorrectCount * 0.25).toFixed(2),
     finalScore: (finalScore as string) || scoreWithNegativeMarking.toFixed(2),
     subjectStats,
-    totalTimeTaken: 0,
+    totalTimeTaken: parseInt(totalTimeTaken as string) || 0,
     rank: rankData?.data?.rank || 0,
     totalUsers: rankData?.data?.totalUsers || 0,
     percentile: rankData?.data?.percentile || 0,
