@@ -45,10 +45,14 @@ export default function TestHistoryScreen() {
     setRefreshing(false);
   };
 
-  const handleViewDetails = (sessionId: string, testTitle: string) => {
+  const handleViewAllAttempts = (categoryUuid: string, categoryName: string, seriesUuid: string) => {
     router.push({
-      pathname: '/test/solutions',
-      params: { sessionId, testTitle }
+      pathname: '/test/test-attempts',
+      params: {
+        categoryUuid,
+        categoryName,
+        seriesUuid
+      }
     });
   };
 
@@ -59,66 +63,73 @@ export default function TestHistoryScreen() {
   };
 
   const renderTestItem = (item: any) => {
-    const scoreColor = getScoreColor(item.percentage);
-    
+    const bestScoreColor = getScoreColor(item.bestPercentage);
+    const latestScoreColor = getScoreColor(item.latestPercentage);
+
     return (
-      <TouchableOpacity
-        key={item.id}
-        style={styles.testCard}
-        onPress={() => handleViewDetails(item.uuid, item.test.title)}
-      >
+      <View key={item.testUuid || item.categoryUuid} style={styles.testCard}>
         <View style={styles.testHeader}>
           <View style={styles.testInfo}>
-            <Text style={styles.testTitle}>{item.test.title}</Text>
+            <Text style={styles.testTitle}>{item.testName}</Text>
+            <Text style={styles.testSeriesName}>{item.testSeriesName}</Text>
             <View style={styles.testMeta}>
               <View style={styles.metaItem}>
                 <Calendar size={14} color={Colors.textSubtle} />
                 <Text style={styles.metaText}>
-                  {format(new Date(item.completed_at), 'MMM dd, yyyy')}
+                  {format(new Date(item.completedAt), 'MMM dd, yyyy')}
                 </Text>
               </View>
               <View style={styles.metaItem}>
-                <Clock size={14} color={Colors.textSubtle} />
+                <Trophy size={14} color={Colors.textSubtle} />
                 <Text style={styles.metaText}>
-                  {Math.floor(item.time_taken / 60)}m {item.time_taken % 60}s
+                  {item.totalAttempts} {item.totalAttempts === 1 ? 'Attempt' : 'Attempts'}
                 </Text>
               </View>
             </View>
           </View>
-          <View style={styles.scoreContainer}>
-            <Text style={[styles.scorePercentage, { color: scoreColor }]}>
-              {item.percentage.toFixed(0)}%
-            </Text>
-            <Text style={styles.scoreText}>
-              {item.score}/{item.total_marks}
-            </Text>
-          </View>
         </View>
 
         <View style={styles.statsGrid}>
-          <View style={[styles.statItem, styles.correctStat]}>
-            <CheckCircle size={16} color={Colors.success} />
-            <Text style={styles.statValue}>{item.correct_answers}</Text>
-            <Text style={styles.statLabel}>Correct</Text>
+          <View style={[styles.statItem, styles.bestScoreStat]}>
+            <Trophy size={16} color={bestScoreColor} />
+            <Text style={[styles.statValue, { color: bestScoreColor }]}>
+              {item.bestPercentage}%
+            </Text>
+            <Text style={styles.statLabel}>Best Score</Text>
+            <Text style={styles.scoreText}>
+              {item.bestScore}/{item.totalQuestions}
+            </Text>
           </View>
-          <View style={[styles.statItem, styles.wrongStat]}>
-            <XCircle size={16} color={Colors.danger} />
-            <Text style={styles.statValue}>{item.wrong_answers}</Text>
-            <Text style={styles.statLabel}>Wrong</Text>
+          <View style={[styles.statItem, styles.latestScoreStat]}>
+            <Clock size={16} color={latestScoreColor} />
+            <Text style={[styles.statValue, { color: latestScoreColor }]}>
+              {item.latestPercentage}%
+            </Text>
+            <Text style={styles.statLabel}>Latest Score</Text>
+            <Text style={styles.scoreText}>
+              {item.latestScore}/{item.totalQuestions}
+            </Text>
           </View>
-          <View style={[styles.statItem, styles.skippedStat]}>
-            <MinusCircle size={16} color={Colors.gray400} />
-            <Text style={styles.statValue}>{item.unanswered}</Text>
-            <Text style={styles.statLabel}>Skipped</Text>
+          <View style={[styles.statItem, styles.questionsStat]}>
+            <CheckCircle size={16} color={Colors.primary} />
+            <Text style={styles.statValue}>{item.totalQuestions}</Text>
+            <Text style={styles.statLabel}>Questions</Text>
           </View>
         </View>
 
         <View style={styles.cardFooter}>
-          <TouchableOpacity style={styles.viewDetailsButton}>
-            <Text style={styles.viewDetailsText}>View Solutions</Text>
+          <TouchableOpacity
+            style={styles.viewAllAttemptsButton}
+            onPress={() => handleViewAllAttempts(
+              item.categoryUuid || item.testUuid,
+              item.categoryName || item.testName,
+              item.testSeriesUuid
+            )}
+          >
+            <Text style={styles.viewAllAttemptsText}>View All Attempts</Text>
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -185,13 +196,15 @@ export default function TestHistoryScreen() {
                 </View>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryValue}>
-                    {sessions.reduce((acc, s) => acc + s.percentage, 0) / sessions.length || 0}%
+                    {Math.round(sessions.reduce((acc: number, s: any) => acc + s.totalAttempts, 0))}
                   </Text>
-                  <Text style={styles.summaryLabel}>Avg Score</Text>
+                  <Text style={styles.summaryLabel}>Total Attempts</Text>
                 </View>
                 <View style={styles.summaryItem}>
-                  <TrendingUp size={24} color={Colors.success} />
-                  <Text style={styles.summaryLabel}>Improving</Text>
+                  <Text style={styles.summaryValue}>
+                    {Math.round(sessions.reduce((acc: number, s: any) => acc + s.bestPercentage, 0) / sessions.length || 0)}%
+                  </Text>
+                  <Text style={styles.summaryLabel}>Avg Best Score</Text>
                 </View>
               </View>
             </View>
@@ -343,6 +356,11 @@ const getStyles = (Colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  testSeriesName: {
+    fontSize: 14,
+    color: Colors.textSubtle,
     marginBottom: 8,
   },
   testMeta: {
@@ -381,15 +399,15 @@ const getStyles = (Colors: any) => StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  correctStat: {
+  bestScoreStat: {
     borderRightWidth: 1,
     borderColor: Colors.border,
   },
-  wrongStat: {
+  latestScoreStat: {
     borderRightWidth: 1,
     borderColor: Colors.border,
   },
-  skippedStat: {},
+  questionsStat: {},
   statValue: {
     fontSize: 18,
     fontWeight: '600',
@@ -403,13 +421,17 @@ const getStyles = (Colors: any) => StyleSheet.create({
   cardFooter: {
     marginTop: 12,
   },
-  viewDetailsButton: {
+  viewAllAttemptsButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     alignItems: 'center',
   },
-  viewDetailsText: {
-    color: Colors.primary,
+  viewAllAttemptsText: {
+    color: Colors.white,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   paginationContainer: {
     flexDirection: 'row',

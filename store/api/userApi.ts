@@ -31,24 +31,31 @@ export interface UserStats {
 }
 
 export interface TestHistoryItem {
-  id: number;
-  uuid: string;
-  test: {
-    id: number;
-    uuid: string;
-    title: string;
-    duration_minutes: number;
-    total_marks: number;
-  };
-  start_time: string;
-  completed_at: string;
-  time_taken: number;
-  score: number;
-  total_marks: number;
-  percentage: number;
-  correct_answers: number;
-  wrong_answers: number;
-  unanswered: number;
+  testId: string;
+  testName: string;
+  testNameGujarati?: string;
+  testUuid: string;
+  testSeriesName: string;
+  testSeriesNameGujarati?: string;
+  testSeriesUuid: string;
+  categoryName: string;
+  categoryNameGujarati?: string;
+  categoryUuid: string;
+  subCategoryName?: string | null;
+  subCategoryUuid?: string | null;
+  hierarchyPath: string;
+  isFreeInPaidSeries: boolean;
+  pricingType: string;
+  latestSessionId: string;
+  completedAt: string;
+  latestScore: number;
+  latestPercentage: number;
+  bestScore: number;
+  bestPercentage: number;
+  totalAttempts: number;
+  totalQuestions: number;
+  attempted: number;
+  timeTaken: string;
 }
 
 export interface Subscription {
@@ -193,32 +200,11 @@ export const userApi = createApi({
       }),
       transformResponse: (response: any) => {
         // Backend returns: { data: { history: [...], pagination: {...} } }
-        // Transform to match frontend format
-        const sessions = response.data.history.map((item: any) => ({
-          id: item.latestSessionId,
-          uuid: item.categoryUuid || item.testUuid,
-          test: {
-            id: item.latestSessionId,
-            uuid: item.categoryUuid || item.testUuid,
-            title: item.testName,
-            duration_minutes: 0,
-            total_marks: item.totalQuestions || 0,
-          },
-          start_time: item.completedAt,
-          completed_at: item.completedAt,
-          time_taken: 0,
-          score: item.latestScore || 0,
-          total_marks: item.totalQuestions || 0,
-          percentage: item.latestPercentage || 0,
-          correct_answers: 0,
-          wrong_answers: 0,
-          unanswered: 0,
-        }));
-
+        // Pass through the aggregated test history data
         return {
           success: true,
           data: {
-            sessions,
+            sessions: response.data.history || [],
             pagination: response.data.pagination,
           },
         };
