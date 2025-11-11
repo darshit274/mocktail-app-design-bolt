@@ -51,11 +51,11 @@ export const StatsOverview = memo<StatsOverviewProps>(({
     <>
       {/* Quick Stats - Top Row */}
       <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
+        {/* <View style={styles.statCard}>
           <Trophy size={24} color={Colors.primary} />
           <Text style={styles.statNumber}>{rank}/{totalUsers}</Text>
           <Text style={styles.statLabel}>Rank</Text>
-        </View>
+        </View> */}
 
         <View style={styles.statCard}>
           <Target size={24} color={Colors.success} />
@@ -69,11 +69,11 @@ export const StatsOverview = memo<StatsOverviewProps>(({
           <Text style={styles.statLabel}>Accuracy</Text>
         </View>
 
-        <View style={styles.statCard}>
+        {/* <View style={styles.statCard}>
           <Percent size={24} color={Colors.primary} />
           <Text style={styles.statNumber}>{percentile.toFixed(2)}%</Text>
           <Text style={styles.statLabel}>Percentile</Text>
-        </View>
+        </View> */}
       </View>
 
       {/* Second Row - Answer Stats */}
@@ -114,13 +114,13 @@ export const StatsOverview = memo<StatsOverviewProps>(({
             </View>
             <Text style={styles.detailValue}>{correctCount}</Text>
           </View>
-          <View style={styles.detailRow}>
+          {/* <View style={styles.detailRow}>
             <View style={styles.detailItem}>
               <Percent size={20} color={Colors.accent} />
               <Text style={styles.detailLabel}>Percentile</Text>
             </View>
             <Text style={styles.detailValue}>{percentile.toFixed(2)}%</Text>
-          </View>
+          </View> */}
           <View style={styles.detailRow}>
             <View style={styles.detailItem}>
               <CheckCircle size={20} color={Colors.accent} />
@@ -135,17 +135,17 @@ export const StatsOverview = memo<StatsOverviewProps>(({
             </View>
             <Text style={styles.detailValue}>{formatTime(totalTimeTaken)}</Text>
           </View>
-          <View style={styles.detailRow}>
+          {/* <View style={styles.detailRow}>
             <View style={styles.detailItem}>
               <Trophy size={20} color={Colors.primaryLight} />
               <Text style={styles.detailLabel}>Rank</Text>
             </View>
             <Text style={styles.detailValue}>{rank}</Text>
-          </View>
+          </View> */}
           <View style={styles.detailRow}>
             <View style={styles.detailItem}>
               <Target size={20} color={Colors.primaryLight} />
-              <Text style={styles.detailLabel}>Score (with -0.25 marking)</Text>
+              <Text style={styles.detailLabel}>Score (with nagative marking)</Text>
             </View>
             <Text style={styles.detailValue}>{scoreWithNegativeMarking.toFixed(2)}/{totalQuestions}</Text>
           </View>
