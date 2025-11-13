@@ -33,7 +33,7 @@ export interface QuizAnswer {
   selectedOption: 'A' | 'B' | 'C' | 'D' | null;
   isCorrect: boolean;
   timeSpent: number;
-  isMarkedForReview: boolean;
+  markedForReview: boolean; // ✅ FIXED: Match web app field name
 }
 
 export interface QuizSubmission {

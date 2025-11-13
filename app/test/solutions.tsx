@@ -72,9 +72,22 @@ export default function SolutionsScreen() {
     if (practiceMode.reattemptMode && !practiceMode.hasReattempted[questionIndex]) {
       return 'hidden';
     }
-    if (question.userAnswer === undefined) return 'unanswered';
-    if (question.userAnswer === question.correctAnswer) return 'correct';
-    return 'incorrect';
+
+    const status = question.userAnswer === undefined
+      ? 'unanswered'
+      : question.userAnswer === question.correctAnswer
+      ? 'correct'
+      : 'incorrect';
+
+    if (questionIndex === 0) {
+      console.log('[getAnswerStatus] Question 0 status:', {
+        userAnswer: question.userAnswer,
+        correctAnswer: question.correctAnswer,
+        status
+      });
+    }
+
+    return status;
   }, [practiceMode.reattemptMode, practiceMode.hasReattempted]);
 
   const getStatusIcon = useCallback((status: string) => {

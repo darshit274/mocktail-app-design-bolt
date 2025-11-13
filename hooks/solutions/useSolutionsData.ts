@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { useReviewAnswersQuery } from '@/store/api/quizApi';
+import { useReviewAnswersQuery, useGetSessionSolutionsQuery } from '@/store/api/quizApi';
 import { useGetDynamicSolutionsQuery } from '@/store/api/dynamicHierarchyApi';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -15,6 +15,7 @@ export interface SolutionQuestion {
   difficulty: 'Easy' | 'Medium' | 'Hard';
   timeSpent: number;
   reattemptAnswer?: number;
+  isMarkedForReview?: boolean;  // ✅ Track if question was marked for review
 }
 
 interface UseSolutionsDataReturn {
@@ -38,18 +39,28 @@ export const useSolutionsData = (selectedLanguage?: 'english' | 'gujarati'): Use
     effectiveLanguage
   });
 
-  // Determine quiz type
-  const isCategoryQuiz = !!categoryUuid;
+  // Determine quiz type - prioritize sessionId over categoryUuid
+  // If sessionId exists, it's ALWAYS a session-based quiz (even if categoryUuid is also present)
+  const isCategoryQuiz = !sessionId && !!categoryUuid;
+
+  console.log('[useSolutionsData] Quiz type detection:', {
+    sessionId,
+    categoryUuid,
+    isCategoryQuiz,
+    willCallSessionAPI: !!sessionId,
+    willCallCategoryAPI: isCategoryQuiz
+  });
 
   // Fetch review data for session-based quizzes
+  // ✅ CHANGED: Use getSessionSolutions instead of reviewAnswers (matches web app API)
   const {
     data: reviewData,
     isLoading: loadingReview,
     error: reviewError
-  } = useReviewAnswersQuery({
+  } = useGetSessionSolutionsQuery({
     session_id: sessionId as string,
   }, {
-    skip: !sessionId || isCategoryQuiz,
+    skip: !sessionId,  // ✅ FIXED: Only skip if no sessionId (don't check categoryUuid)
   });
 
   // Fetch solutions for category-based quizzes with both languages
@@ -64,9 +75,58 @@ export const useSolutionsData = (selectedLanguage?: 'english' | 'gujarati'): Use
     skip: !isCategoryQuiz,
   });
 
+  // Transform test-history API response (used by web app)
+  const transformTestHistorySolutions = (solutions: any[]): SolutionQuestion[] => {
+    if (!solutions) return [];
+
+    console.log('[transformTestHistorySolutions] Received', solutions.length, 'solutions from API');
+    console.log('[transformTestHistorySolutions] Sample solution data:', solutions[0]);
+
+    return solutions.map((sol, index) => {
+      const useGujarati = effectiveLanguage === 'gujarati';
+
+      const questionText = useGujarati
+        ? (sol.questionTextGujarati || sol.questionText || 'No question available')
+        : (sol.questionText || sol.questionTextGujarati || 'No question available');
+
+      const explanation = useGujarati
+        ? (sol.explanationGujarati || sol.explanation || 'No explanation available.')
+        : (sol.explanation || sol.explanationGujarati || 'No explanation available.');
+
+      const getOption = (optionKey: string) => {
+        return sol.options?.[optionKey] || `Option ${optionKey}`;
+      };
+
+      const transformed = {
+        id: sol.questionId || index + 1,
+        question: questionText,
+        options: [getOption('A'), getOption('B'), getOption('C'), getOption('D')],
+        correctAnswer: sol.correctAnswer ? ['A', 'B', 'C', 'D'].indexOf(sol.correctAnswer) : 0,
+        userAnswer: sol.userAnswer ? ['A', 'B', 'C', 'D'].indexOf(sol.userAnswer) : undefined,
+        explanation: explanation,
+        subject: 'General',
+        difficulty: 'Medium' as const,
+        timeSpent: sol.timeSpent || 0,
+        isMarkedForReview: sol.isMarked || false,
+      };
+
+      if (index === 0) {
+        console.log('[transformTestHistorySolutions] Sample transformation:', {
+          input: { userAnswer: sol.userAnswer, correctAnswer: sol.correctAnswer, isMarked: sol.isMarked },
+          output: { userAnswer: transformed.userAnswer, correctAnswer: transformed.correctAnswer, isMarkedForReview: transformed.isMarkedForReview }
+        });
+      }
+
+      return transformed;
+    });
+  };
+
   // Transform API data to SolutionQuestion format
   const transformQuestions = (apiQuestions: any[]): SolutionQuestion[] => {
     if (!apiQuestions) return [];
+
+    console.log('[transformQuestions] Received', apiQuestions.length, 'questions from API');
+    console.log('[transformQuestions] Sample question data:', apiQuestions[0]);
 
     return apiQuestions.map((q, index) => {
       const useGujarati = effectiveLanguage === 'gujarati';
@@ -93,7 +153,7 @@ export const useSolutionsData = (selectedLanguage?: 'english' | 'gujarati'): Use
         ? (q.explanation_gujarati || q.explanation || 'No explanation available.')
         : (q.explanation || q.explanation_gujarati || 'No explanation available.');
 
-      return {
+      const transformed = {
         id: q.id || index + 1,
         question: questionText,
         options: [getOption('A'), getOption('B'), getOption('C'), getOption('D')],
@@ -103,7 +163,17 @@ export const useSolutionsData = (selectedLanguage?: 'english' | 'gujarati'): Use
         subject: q.subject || 'General',
         difficulty: q.difficulty_level === 'easy' ? 'Easy' : q.difficulty_level === 'medium' ? 'Medium' : 'Hard',
         timeSpent: q.time_spent || 0,
+        isMarkedForReview: q.is_flagged || q.is_marked_for_review || false,  // ✅ Track marked status
       };
+
+      if (index === 0) {
+        console.log('[transformQuestions] Sample transformation:', {
+          input: { selected_option: q.selected_option, correct_option: q.correct_option, is_flagged: q.is_flagged },
+          output: { userAnswer: transformed.userAnswer, correctAnswer: transformed.correctAnswer, isMarkedForReview: transformed.isMarkedForReview }
+        });
+      }
+
+      return transformed;
     });
   };
 
@@ -166,17 +236,34 @@ export const useSolutionsData = (selectedLanguage?: 'english' | 'gujarati'): Use
         subject: 'General',
         difficulty: 'Medium',
         timeSpent: 0,
+        isMarkedForReview: false,  // ✅ Category solutions don't have marked status (immediate viewing)
       };
     });
   };
 
   // Memoize the transformed questions
   const questions = useMemo(() => {
+    let result: SolutionQuestion[] = [];
+
     if (isCategoryQuiz) {
-      return transformCategorySolutions(categoryData?.data?.solutions || []);
+      console.log('[useSolutionsData] Using category quiz data:', categoryData?.data);
+      result = transformCategorySolutions(categoryData?.data?.solutions || []);
     } else {
-      return transformQuestions(reviewData?.data?.questions || []);
+      console.log('[useSolutionsData] Using session-based data:', reviewData?.data);
+      // ✅ CHANGED: Use transformTestHistorySolutions for the new API response format
+      result = transformTestHistorySolutions(reviewData?.data?.solutions || []);
     }
+
+    console.log('[useSolutionsData] Final transformed questions:', result.length, 'questions');
+    if (result.length > 0) {
+      console.log('[useSolutionsData] First question sample:', {
+        userAnswer: result[0].userAnswer,
+        correctAnswer: result[0].correctAnswer,
+        isMarkedForReview: result[0].isMarkedForReview
+      });
+    }
+
+    return result;
   }, [isCategoryQuiz, categoryData, reviewData, effectiveLanguage]);
 
   return {

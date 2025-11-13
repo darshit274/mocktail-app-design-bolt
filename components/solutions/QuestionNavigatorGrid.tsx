@@ -84,6 +84,10 @@ export const QuestionNavigatorGrid = memo<QuestionNavigatorGridProps>(({
           <Text style={styles.legendText}>Unanswered</Text>
         </View>
         <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: Colors.info || '#3B82F6' }]} />
+          <Text style={styles.legendText}>Marked</Text>
+        </View>
+        <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
           <Text style={styles.legendText}>Current</Text>
         </View>

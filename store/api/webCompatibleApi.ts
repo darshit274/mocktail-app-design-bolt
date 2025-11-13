@@ -14,7 +14,7 @@ export interface WebQuizSubmissionRequest {
     selectedOption: 'A' | 'B' | 'C' | 'D' | null;
     isCorrect: boolean;
     timeSpent?: number;
-    isMarkedForReview?: boolean;
+    markedForReview?: boolean; // ✅ FIXED: Match web app field name
   }>;
   totalQuestions?: number; // IMPORTANT: Actual total question count for proper calculation
   totalTimeSpent?: number;
@@ -25,6 +25,7 @@ export interface WebQuizSubmissionResponse {
   success: boolean;
   message: string;
   data: {
+    sessionId?: string;  // ✅ ADD: TestSession UUID for solutions API
     leaderboardEntryId?: number;
     score: number;
     percentage: number;

@@ -183,7 +183,7 @@ export default function WebQuizScreen() {
             selectedOption: selectedAnswer,
             isCorrect: selectedAnswer === correctAnswer,
             timeSpent: 30,
-            isMarkedForReview: isMarkedForReview,
+            markedForReview: isMarkedForReview, // ✅ FIXED: Match web app field name
           };
         });
 
@@ -227,7 +227,8 @@ export default function WebQuizScreen() {
       router.replace({
         pathname: '/test/results',
         params: {
-          sessionId: result.data.leaderboardEntryId?.toString() || 'web-quiz',
+          sessionId: result.data.sessionId || result.data.leaderboardEntryId?.toString() || 'web-quiz',  // ✅ FIXED: Use TestSession UUID
+          leaderboardEntryId: result.data.leaderboardEntryId?.toString(),  // ✅ ADD: Keep for leaderboard
           score: result.data.score.toString(),
           percentage: percentage.toString(),
           passed: passed.toString(),

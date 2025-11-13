@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { View, Text, useWindowDimensions } from 'react-native';
 import RenderHTML from 'react-native-render-html';
-import { BookOpen, Clock, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { BookOpen, Clock, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, Flag } from 'lucide-react-native';
 import { ThemeColors } from '@/types';
 import { createSolutionsStyles } from '@/styles/solutionsStyles';
 import { SolutionQuestion } from '@/hooks/solutions/useSolutionsData';
@@ -58,24 +58,46 @@ export const QuestionCard = memo<QuestionCardProps>(({
   return (
     <View style={styles.questionCard}>
       <View style={styles.questionHeader}>
-        {/* Answer Status Badge - Top Left */}
-        {answerStatus !== 'hidden' && answerStatus !== 'unanswered' && (
-          <View style={[
-            styles.answerStatusBadge,
-            {
-              backgroundColor: answerStatus === 'correct'
-                ? Colors.success
-                : Colors.danger,
-            }
-          ]}>
-            <View style={styles.answerStatusContent}>
-              {getStatusIcon(answerStatus)}
-              <Text style={styles.answerStatusText}>
-                {getStatusText(answerStatus)}
-              </Text>
+        {/* Status Badges Container - Can show multiple badges */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', flex: 1, gap: 8 }}>
+          {/* Main Answer Status Badge */}
+          {answerStatus !== 'hidden' && (
+            <View style={[
+              styles.answerStatusBadge,
+              {
+                backgroundColor: answerStatus === 'correct'
+                  ? Colors.success
+                  : answerStatus === 'incorrect'
+                  ? Colors.danger
+                  : Colors.warning,  // ✅ FIXED: Show warning color for unanswered
+              }
+            ]}>
+              <View style={styles.answerStatusContent}>
+                {getStatusIcon(answerStatus)}
+                <Text style={styles.answerStatusText}>
+                  {getStatusText(answerStatus)}
+                </Text>
+              </View>
             </View>
-          </View>
-        )}
+          )}
+
+          {/* Marked for Review Badge */}
+          {question.isMarkedForReview && (
+            <View style={[
+              styles.answerStatusBadge,
+              {
+                backgroundColor: Colors.info || '#3B82F6',  // Blue color for marked
+              }
+            ]}>
+              <View style={styles.answerStatusContent}>
+                <Flag size={16} color="#FFFFFF" />
+                <Text style={styles.answerStatusText}>
+                  Marked for Review
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
         <ReportQuestionButton questionId={question.id} Colors={Colors} />
       </View>
 

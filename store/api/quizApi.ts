@@ -289,6 +289,18 @@ export const quizApi = createApi({
       ],
     }),
 
+    // ✅ NEW: Get session solutions (same API as web app)
+    getSessionSolutions: builder.query<ReviewAnswersResponse, ReviewAnswersRequest>({
+      query: ({ session_id }) => ({
+        url: `/test-history/${session_id}/solutions`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, { session_id }) => [
+        { type: 'QuizResult', id: session_id },
+        { type: 'QuizSession', id: session_id },
+      ],
+    }),
+
     // Get user's quiz history
     getQuizHistory: builder.query<{
       success: boolean;
@@ -384,6 +396,7 @@ export const {
   useSubmitTestMutation,
   useReviewAnswersQuery,
   useLazyReviewAnswersQuery,
+  useGetSessionSolutionsQuery,  // ✅ NEW: Export the session solutions hook
   useGetQuizHistoryQuery,
   useGetQuizLeaderboardQuery,
   useValidateTestAccessQuery,
