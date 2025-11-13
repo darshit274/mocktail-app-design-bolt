@@ -58,19 +58,20 @@ export default function SeriesDetailScreen() {
     }
   }, [testHistoryData]);
 
-  // Helper to check if a category test is completed
+  // Helper to check if a category test is completed (MATCHES WEB APP LOGIC)
   const isCategoryCompleted = (categoryUuid: string) => {
-    const completed = testHistoryData?.data?.sessions?.some(
-      (session: any) => {
-        const matches = session.test?.uuid === categoryUuid || session.uuid === categoryUuid;
-        console.log(`🔍 [SeriesDetail] Checking ${categoryUuid}:`, {
-          sessionUuid: session.uuid,
-          testUuid: session.test?.uuid,
-          matches
-        });
-        return matches;
-      }
-    ) || false;
+    if (!testHistoryData || !testHistoryData.data || !testHistoryData.data.sessions) {
+      return false;
+    }
+
+
+    // Check multiple UUID fields to match (same as web app logic)
+    const completed = testHistoryData?.data?.sessions?.some((item: any) => {
+      const matchesCategoryUuid = item.categoryUuid === categoryUuid;
+      const matchesTestUuid = item.testUuid === categoryUuid;
+      return matchesCategoryUuid || matchesTestUuid;
+    });
+
     console.log(`✅ [SeriesDetail] Category ${categoryUuid} completed:`, completed);
     return completed;
   };

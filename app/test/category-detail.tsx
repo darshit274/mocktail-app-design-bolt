@@ -62,21 +62,23 @@ export default function CategoryDetailScreen() {
   React.useEffect(() => {
     if (testHistoryData) {
       categoryLogger.debug('Test History Data:', {
-        totalSessions: testHistoryData?.data?.sessions?.length,
-        sessions: testHistoryData?.data?.sessions,
+        totalHistory: testHistoryData?.data?.sessions?.length,
+        history: testHistoryData?.data?.sessions,
         currentCategoryUuid: params.categoryUuid,
       });
     }
   }, [testHistoryData, params.categoryUuid]);
 
-  // Check if current category test is completed
+  // Check if current category test is completed (MATCHES WEB APP LOGIC)
   const isTestCompleted = testHistoryData?.data?.sessions?.some(
-    (session: any) => {
-      const matches = session.test?.uuid === params.categoryUuid || session.uuid === params.categoryUuid;
-      categoryLogger.debug('Checking session:', {
-        sessionUuid: session.uuid,
-        testUuid: session.test?.uuid,
-        categoryUuid: params.categoryUuid,
+    (item: any) => {
+      const matchesCategoryUuid = item.categoryUuid === params.categoryUuid;
+      const matchesTestUuid = item.testUuid === params.categoryUuid;
+      const matches = matchesCategoryUuid || matchesTestUuid;
+      categoryLogger.debug('Checking history item:', {
+        categoryUuid: item.categoryUuid,
+        testUuid: item.testUuid,
+        targetUuid: params.categoryUuid,
         matches,
       });
       return matches;
