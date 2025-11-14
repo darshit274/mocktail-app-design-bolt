@@ -172,7 +172,6 @@ export default function WebQuizScreen() {
 
       // Prepare answers - ONLY include answered questions
       const webApiAnswers = quizState.questions
-        .filter((question: Question) => quizState.selectedAnswers[question.id]) // Only answered questions
         .map((question: Question) => {
           const selectedAnswer = quizState.selectedAnswers[question.id];
           const correctAnswer = question.correct_answer;

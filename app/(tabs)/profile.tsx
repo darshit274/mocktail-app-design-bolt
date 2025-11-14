@@ -10,12 +10,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/shared';
 import { useGetProfileQuery } from '@/store/api/userApi';
 import { useDispatch } from 'react-redux';
-import { clearAuth } from '@/store/slices/authSlice';
 import { userApi } from '@/store/api/userApi';
 import { authApi } from '@/store/api/authApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AUTH_CONFIG } from '@/config/constants';
 import logger from '@/utils/logger';
+import { clearAuthData } from '@/utils/storageUtils';
 
 const profileLogger = logger.createLogger('Profile');
 
@@ -92,7 +92,8 @@ export default function ProfileScreen() {
 
               // Clear Redux state
               profileLogger.info('Clearing Redux state');
-              dispatch(clearAuth());
+              await clearAuthData()
+              // dispatch(clearAuth());
 
               // Clear API cache
               dispatch(userApi.util.resetApiState());

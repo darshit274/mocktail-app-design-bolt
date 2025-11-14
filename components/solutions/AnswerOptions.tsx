@@ -36,7 +36,7 @@ export const AnswerOptions = memo<AnswerOptionsProps>(({
         const isCorrect = index === question.correctAnswer;
         const isUserAnswer = index === question.userAnswer;
         const isReattemptAnswer = index === reattemptAnswer;
-        const showOriginalAnswers = !reattemptMode || hasReattempted || isOriginallyCorrect;
+        const showOriginalAnswers = !reattemptMode || hasReattempted; // ✅ FIXED: Don't show original answers for correct questions in reattempt mode
 
         // Styling conditions
         const showCorrectStyling = showOriginalAnswers && isCorrect;
@@ -52,8 +52,8 @@ export const AnswerOptions = memo<AnswerOptionsProps>(({
           return Colors.textPrimary;
         };
 
-        // Reattempt mode - clickable options
-        if (reattemptMode && !hasReattempted && !isOriginallyCorrect) {
+        // Reattempt mode - clickable options (allow reattempting ALL questions)
+        if (reattemptMode && !hasReattempted) {
           return (
             <TouchableOpacity
               key={index}

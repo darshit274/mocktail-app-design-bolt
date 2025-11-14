@@ -29,32 +29,6 @@ export const QuestionCard = memo<QuestionCardProps>(({
   const styles = createSolutionsStyles(Colors);
   const { width } = useWindowDimensions();
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Easy':
-        return Colors.badgeSuccessBg;
-      case 'Medium':
-        return Colors.premiumBadge;
-      case 'Hard':
-        return Colors.badgeDangerBg;
-      default:
-        return Colors.badgeSuccessBg;
-    }
-  };
-
-  const getDifficultyTextColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Easy':
-        return Colors.success;
-      case 'Medium':
-        return Colors.premiumText;
-      case 'Hard':
-        return Colors.danger;
-      default:
-        return Colors.success;
-    }
-  };
-
   return (
     <View style={styles.questionCard}>
       <View style={styles.questionHeader}>
@@ -86,7 +60,7 @@ export const QuestionCard = memo<QuestionCardProps>(({
             <View style={[
               styles.answerStatusBadge,
               {
-                backgroundColor: Colors.info || '#3B82F6',  // Blue color for marked
+                backgroundColor: '#3B82F6',  // Blue color for marked
               }
             ]}>
               <View style={styles.answerStatusContent}>

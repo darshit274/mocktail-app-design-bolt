@@ -51,11 +51,14 @@ export const StatsOverview = memo<StatsOverviewProps>(({
     <>
       {/* Quick Stats - Top Row */}
       <View style={styles.statsContainer}>
-        {/* <View style={styles.statCard}>
+        {/* ✅ UNCOMMENTED: Show test-series rank */}
+        <View style={styles.statCard}>
           <Trophy size={24} color={Colors.primary} />
-          <Text style={styles.statNumber}>{rank}/{totalUsers}</Text>
+          <Text style={styles.statNumber}>
+            {rank > 0 && totalUsers > 0 ? `${rank}/${totalUsers}` : 'Not Ranked'}
+          </Text>
           <Text style={styles.statLabel}>Rank</Text>
-        </View> */}
+        </View>
 
         <View style={styles.statCard}>
           <Target size={24} color={Colors.success} />

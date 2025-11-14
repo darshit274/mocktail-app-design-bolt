@@ -24,7 +24,7 @@ export const ReattemptStatus = memo<ReattemptStatusProps>(({
   const styles = createSolutionsStyles(Colors);
 
   // Show reattempt result if user has reattempted
-  if (reattemptMode && hasReattempted && !isOriginallyCorrect) {
+  if (reattemptMode && hasReattempted) {
     return (
       <View style={styles.reattemptStatusCard}>
         <Text style={styles.reattemptStatusTitle}>Reattempt Result:</Text>
@@ -53,23 +53,10 @@ export const ReattemptStatus = memo<ReattemptStatusProps>(({
     );
   }
 
-  // Show "already correct" card if user originally answered correctly
-  if (reattemptMode && isOriginallyCorrect && !hasReattempted) {
-    return (
-      <View style={styles.alreadyCorrectCard}>
-        <View style={styles.alreadyCorrectHeader}>
-          <CheckCircle size={24} color={Colors.success} />
-          <Text style={styles.alreadyCorrectTitle}>Already Correct!</Text>
-        </View>
-        <Text style={styles.alreadyCorrectText}>
-          You answered this question correctly. No need to reattempt. View the explanation below.
-        </Text>
-      </View>
-    );
-  }
+  // ✅ REMOVED: "Already Correct" restriction - now users can reattempt even if originally correct
 
-  // Show instructions for reattempt mode
-  if (reattemptMode && !hasReattempted && !isOriginallyCorrect) {
+  // Show instructions for reattempt mode (for ALL questions that haven't been reattempted yet)
+  if (reattemptMode && !hasReattempted) {
     return (
       <View style={styles.instructionCard}>
         <Text style={styles.instructionTitle}>Reattempt Mode</Text>
