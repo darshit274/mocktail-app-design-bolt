@@ -69,9 +69,9 @@ export default function SolutionsScreen() {
 
   // Helper functions
   const getAnswerStatus = useCallback((question: typeof questions[0], questionIndex: number) => {
-    if (practiceMode.reattemptMode && !practiceMode.hasReattempted[questionIndex]) {
-      return 'hidden';
-    }
+    // if (practiceMode.reattemptMode && !practiceMode.hasReattempted[questionIndex]) {
+    //   return 'hidden';
+    // }
 
     const status = question.userAnswer === undefined
       ? 'unanswered'

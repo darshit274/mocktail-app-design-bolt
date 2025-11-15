@@ -118,6 +118,7 @@ export const LeaderboardItem = memo<LeaderboardItemProps>(({
         );
     }
   }, [item.rank, Colors]);
+console.log(item,"ooooooooooooooooooooo");
 
   return (
     <View

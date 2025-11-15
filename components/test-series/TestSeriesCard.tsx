@@ -111,7 +111,7 @@ export const TestSeriesCard = memo<TestSeriesCardProps>(({
           <View style={[styles.purchasedBadge, { backgroundColor: Colors.badgeSuccessBg }]}>
             <CheckCircle size={16} color={Colors.success} />
             <Text style={[styles.purchasedText, { color: Colors.success }]}>
-              {accessData?.accessType === 'free' ? 'Free Access' : 'Enrolled'}
+              {accessData?.accessType === 'free' ? 'Free' : 'Enrolled'}
             </Text>
           </View>
         )}
@@ -134,7 +134,7 @@ export const TestSeriesCard = memo<TestSeriesCardProps>(({
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Clock size={16} color={Colors.textSubtle} />
-          <Text style={[styles.statText, { color: Colors.textSubtle }]}>12 months</Text>
+          <Text style={[styles.statText, { color: Colors.textSubtle }]}>{series?.validity_days} days</Text>
         </View>
         <View style={styles.statItem}>
           <Play size={16} color={Colors.textSubtle} />
