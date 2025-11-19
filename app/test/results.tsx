@@ -138,14 +138,14 @@ export default function TestResultsScreen() {
             {t.results.overview}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={[styles.tab, activeTab === 'analysis' && styles.activeTab]}
           onPress={() => setActiveTab('analysis')}
         >
           <Text style={[styles.tabText, activeTab === 'analysis' && styles.activeTabText]}>
             {t.results.analysis}
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

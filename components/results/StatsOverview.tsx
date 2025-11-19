@@ -72,11 +72,11 @@ export const StatsOverview = memo<StatsOverviewProps>(({
           <Text style={styles.statLabel}>Accuracy</Text>
         </View>
 
-        {/* <View style={styles.statCard}>
+        <View style={styles.statCard}>
           <Percent size={24} color={Colors.primary} />
-          <Text style={styles.statNumber}>{percentile.toFixed(2)}%</Text>
+          <Text style={styles.statNumber}>{percentile}</Text>
           <Text style={styles.statLabel}>Percentile</Text>
-        </View> */}
+        </View>
       </View>
 
       {/* Second Row - Answer Stats */}
@@ -117,13 +117,13 @@ export const StatsOverview = memo<StatsOverviewProps>(({
             </View>
             <Text style={styles.detailValue}>{correctCount}</Text>
           </View>
-          {/* <View style={styles.detailRow}>
+          <View style={styles.detailRow}>
             <View style={styles.detailItem}>
               <Percent size={20} color={Colors.accent} />
               <Text style={styles.detailLabel}>Percentile</Text>
             </View>
-            <Text style={styles.detailValue}>{percentile.toFixed(2)}%</Text>
-          </View> */}
+            <Text style={styles.detailValue}>{percentile}</Text>
+          </View>
           <View style={styles.detailRow}>
             <View style={styles.detailItem}>
               <CheckCircle size={20} color={Colors.accent} />

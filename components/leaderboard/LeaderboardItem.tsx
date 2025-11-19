@@ -118,7 +118,6 @@ export const LeaderboardItem = memo<LeaderboardItemProps>(({
         );
     }
   }, [item.rank, Colors]);
-console.log(item,"ooooooooooooooooooooo");
 
   return (
     <View
@@ -148,13 +147,13 @@ console.log(item,"ooooooooooooooooooooo");
             {item.name}
           </Text>
           <Text style={[styles.userStats, { color: Colors.textSubtle }]}>
-            {item.percentage.toFixed(1)}% • {formattedTime}
+            {item.percentile} • {formattedTime}
           </Text>
         </View>
       </View>
       <View style={styles.scoreInfo}>
         <Text style={[styles.userScore, { color: Colors.textLink }]}>
-          {item.totalScore}
+          {item.finalScore ?? item.totalScore}
         </Text>
       </View>
     </View>

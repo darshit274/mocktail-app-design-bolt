@@ -102,13 +102,14 @@ export default function TestLeaderboardScreen() {
     if (!userEntry) {
       return null;
     }
-
     return {
       rank: userEntry.rank,
       name: userEntry.name || user.username || t.leaderboard.you,
       score: userEntry.percentage || userEntry.totalScore,
+      totalScore: userEntry.totalScore,
       percentage: userEntry.percentage,
       accuracy: userEntry.percentage, // Using percentage as accuracy
+      percentile: userEntry.percentile,
       timeTaken: userEntry.timeTaken,
       timeSpent: userEntry.timeTaken
     };
@@ -188,12 +189,12 @@ export default function TestLeaderboardScreen() {
               <View style={styles.userInfo}>
                 <Text style={styles.userName}>{currentUserRank.name || t.leaderboard.you}</Text>
                 <Text style={styles.userStats}>
-                  {currentUserRank.accuracy}% {t.leaderboard.accuracy} • {formatTime(currentUserRank.timeTaken || currentUserRank.timeSpent || 0)}
+                  {currentUserRank.percentile} • {formatTime(currentUserRank.timeTaken || currentUserRank.timeSpent || 0)}
                 </Text>
               </View>
             </View>
             <View style={styles.scoreInfo}>
-              <Text style={styles.userScore}>{currentUserRank.score || currentUserRank.percentage || 0}%</Text>
+              <Text style={styles.userScore}>{currentUserRank.totalScore ?? currentUserRank.percentage ?? 0}</Text>
             </View>
           </LinearGradient>
         </View>

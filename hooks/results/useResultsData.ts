@@ -81,6 +81,7 @@ export const useResultsData = (): ResultsData => {
     return {
       rank: userEntry?.rank || 0,
       totalUsers: totalUsers,
+      percentile: userEntry?.percentile
     };
   }, [leaderboardData, userUuid]);
 
@@ -120,9 +121,9 @@ export const useResultsData = (): ResultsData => {
         finalScore: scoreWithNegativeMarking.toFixed(2),
         subjectStats,
         totalTimeTaken: apiData.timeSpent,
+        percentile: userRank.percentile,
         rank: userRank.rank, // ✅ FIXED: Use test-series specific rank
         totalUsers: userRank.totalUsers, // ✅ FIXED: Use test-series specific total
-        percentile: 0, // Percentile not calculated yet
       };
     }
 
@@ -154,7 +155,7 @@ export const useResultsData = (): ResultsData => {
       totalTimeTaken: parseInt(totalTimeTaken as string) || 0,
       rank: userRank.rank, // ✅ FIXED: Use test-series specific rank
       totalUsers: userRank.totalUsers, // ✅ FIXED: Use test-series specific total
-      percentile: 0, // Percentile not calculated yet
+      percentile: userRank?.percentile, // Percentile not calculated yet
     };
   }, [
     sessionId,

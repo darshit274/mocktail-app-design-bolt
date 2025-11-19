@@ -271,7 +271,7 @@ export const en = {
     incorrectAnswers: 'Incorrect Answers',
     unanswered: 'Unanswered',
     viewSolutions: 'View Solutions',
-    viewLeaderboard: 'View Leaderboard',
+    viewScoreboard: 'View Scoreboard',
     retakeTest: 'Retake Test',
     shareResults: 'Share Results',
     performance: 'Performance',
@@ -322,7 +322,7 @@ export const en = {
 
   // Leaderboard
   leaderboard: {
-    title: 'Leaderboard',
+    title: 'Scoreboard',
     rank: 'Rank',
     name: 'Name',
     score: 'Score',

@@ -267,7 +267,7 @@ export const gu = {
     incorrectAnswers: 'ખોટા જવાબો',
     unanswered: 'જવાબ વિના',
     viewSolutions: 'ઉકેલો જુઓ',
-    viewLeaderboard: 'લીડરબોર્ડ જુઓ',
+    viewScoreboard: 'સકોરબોર્ડ જુઓ',
     retakeTest: 'ટેસ્ટ ફરીથી લો',
     shareResults: 'પરિણામો શેર કરો',
     performance: 'પ્રદર્શન',
@@ -318,7 +318,7 @@ export const gu = {
 
   // Leaderboard
   leaderboard: {
-    title: 'લીડરબોર્ડ',
+    title: 'સકોરબોર્ડ',
     rank: 'રેન્ક',
     name: 'નામ',
     score: 'સ્કોર',

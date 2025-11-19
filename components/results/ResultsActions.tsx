@@ -32,7 +32,7 @@ export const ResultsActions = memo<ResultsActionsProps>(({
 
       <TouchableOpacity style={styles.actionButton} onPress={onViewLeaderboard}>
         <Trophy size={20} color={Colors.primary} />
-        <Text style={styles.actionButtonText}>{t.results.viewLeaderboard}</Text>
+        <Text style={styles.actionButtonText}>{t.results.viewScoreboard}</Text>
         <ChevronRight size={16} color={Colors.primary} />
       </TouchableOpacity>
 
