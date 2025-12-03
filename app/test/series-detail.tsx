@@ -41,12 +41,13 @@ export default function SeriesDetailScreen() {
   const series = seriesData?.data;
   const categories = series?.categories || [];
 
+
   // Use is_subscribed from series data directly (faster, no extra API call)
-  const hasAccess = series?.is_subscribed || false;
 
   // Only fetch subscription details if needed for button state
   const { accessData, loading: accessLoading, error: accessError } = useSubscriptionAccess(series?.id);
   const buttonState = getSeriesButtonState(accessData);
+  const hasAccess = series?.is_subscribed || accessData?.hasAccess || false;
 
   // Fetch test history to check completion status
   const { data: testHistoryData } = useGetTestHistoryQuery({ page: 1, limit: 100 });
@@ -302,7 +303,7 @@ export default function SeriesDetailScreen() {
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -320,7 +321,7 @@ export default function SeriesDetailScreen() {
             <SkeletonLoader width="100%" height={16} style={{ marginBottom: 16 }} />
             <SkeletonLoader width="60%" height={16} style={{ marginBottom: 16 }} />
           </View>
-          
+
           <View style={styles.categoriesSection}>
             <SkeletonLoader width={120} height={20} style={{ marginBottom: 16 }} />
             {Array.from({ length: 3 }).map((_, index) => (
@@ -338,7 +339,7 @@ export default function SeriesDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -346,7 +347,7 @@ export default function SeriesDetailScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Error</Text>
         </View>
-        
+
         <View style={styles.errorContainer}>
           <Text style={[styles.errorTitle, { color: Colors.textPrimary }]}>
             Failed to load test series
@@ -379,7 +380,7 @@ export default function SeriesDetailScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
@@ -392,7 +393,7 @@ export default function SeriesDetailScreen() {
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl
@@ -410,7 +411,7 @@ export default function SeriesDetailScreen() {
           <Text style={[styles.seriesTitle, { color: Colors.textPrimary }]}>
             {series.name || series.title}
           </Text>
-          
+
           {(series.description || series.description_gujarati) && (
             <Text style={[styles.seriesDescription, { color: Colors.textSubtle }]}>
               {t.language === 'gujarati' && series.description_gujarati
@@ -439,7 +440,7 @@ export default function SeriesDetailScreen() {
           {/* Action Buttons */}
           <View style={styles.actionContainer}>
             <View style={styles.priceContainer}>
-              {series.pricing_type === 'free' || series.is_free ? (
+              {series.pricing_type === 'free' || series.is_free_in_paid_series || series.pricing_type === 'previous_years_question_papers' ? (
                 <Text style={[styles.price, { color: Colors.success }]}>Free</Text>
               ) : (
                 <>
@@ -468,7 +469,7 @@ export default function SeriesDetailScreen() {
                     Continue Learning
                   </Text>
                 </TouchableOpacity>
-              ) : series.pricing_type === 'free' ? (
+              ) : series.pricing_type === 'free' || series.pricing_type === 'previous_years_question_papers' ? (
                 <TouchableOpacity
                   style={[styles.continueButton, { backgroundColor: Colors.success }]}
                   onPress={handleStartFreeTest}

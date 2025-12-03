@@ -79,6 +79,8 @@ export default function TestResultsScreen() {
         categoryUuid: params.categoryUuid,
         categoryName: params.categoryName,
         testTitle: resultsData.testTitle,
+        sessionId: params.sessionId || 'mock-session',
+
       },
     });
   }, [params, resultsData.testTitle]);

@@ -209,7 +209,7 @@ export const createQuizStyles = (Colors: ThemeColors) => StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   submitButtonText: {
-    color: Colors.white,
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: 'bold',
   },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Folder, FileText, Play, Lock, ChevronRight, CheckCircle } from 'lucide-react-native';
+import { ArrowLeft, Folder, FileText, Globe, Timer, Play, Lock, ChevronRight, CheckCircle } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 
 import { useGetDynamicCategoryByUuidQuery } from '@/store/api/dynamicHierarchyApi';
@@ -46,7 +46,15 @@ export default function CategoryDetailScreen() {
     error,
     refetch,
   } = useGetDynamicCategoryByUuidQuery(params.categoryUuid);
-
+  const formatTime = useCallback((seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    }
+    return `${minutes}m ${secs}s`;
+  }, []);
   // Get subscription access for the test series
   const {
     accessData,
@@ -335,6 +343,11 @@ export default function CategoryDetailScreen() {
             const isQuestionHolder = subcategory.node_type === 'question_holder';
             const isFreeInPaid = isPaidSeries && !hasSeriesAccess && isQuestionHolder && subcategory.is_free_in_paid_series === true;
             const isLocked = isPaidSeries && !hasSeriesAccess && isQuestionHolder && !isAccessible;
+            const isComplated = testHistoryData?.data?.sessions?.some(
+              (item: any) => {
+                return item?.testId == subcategory?.uuid;
+              }
+            ) || false;
 
             return (
               <TouchableOpacity
@@ -384,6 +397,11 @@ export default function CategoryDetailScreen() {
                     {isLocked && (
                       <View style={styles.lockedBadge}>
                         <Text style={styles.lockedBadgeText}>LOCKED</Text>
+                      </View>
+                    )}
+                    {isComplated && (
+                      <View style={styles.completedBadge}>
+                        <Text style={styles.completedBadgeText}>Complated</Text>
                       </View>
                     )}
                     <View style={styles.levelBadge}>
@@ -476,7 +494,12 @@ export default function CategoryDetailScreen() {
               <Text style={styles.quizInfoValue}>{content.length}</Text>
             </View>
             <View style={styles.quizInfoRow}>
-              <Play size={20} color={Colors.primary} />
+              <Timer size={20} color={Colors.primary} />
+              <Text style={styles.quizInfoLabel}>Time duration</Text>
+              <Text style={styles.quizInfoValue}>{formatTime(category?.test_duration_minutes * 60)}</Text>
+            </View>
+            <View style={styles.quizInfoRow}>
+              <Globe size={20} color={Colors.primary} />
               <Text style={styles.quizInfoLabel}>Language</Text>
               <Text style={styles.quizInfoValue}>
                 {language === 'gujarati' ? 'ગુજરાતી' : 'English'}
@@ -779,6 +802,19 @@ const getStyles = (Colors: any) => StyleSheet.create({
     color: 'white',
     letterSpacing: 0.5,
   },
+  completedBadge: {
+    backgroundColor: "#009688", // or Colors.successDark / '#1E88E5'
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  completedBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'white',
+    letterSpacing: 0.5,
+  },
+
   levelBadge: {
     backgroundColor: Colors.backgroundSecondary,
     borderRadius: 6,

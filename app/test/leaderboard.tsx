@@ -25,7 +25,7 @@ export default function TestLeaderboardScreen() {
   leaderboardLogger.debug('Current user:', user);
 
   // Get the test series UUID from params (should come from navigation)
-  const testSeriesUuid = params.seriesUuid || params.categoryUuid || '4d7c05cd-f70e-4717-a631-5f1e85756a5c';
+  const testSeriesUuid = params.sessionId || params.seriesUuid || params.categoryUuid || '4d7c05cd-f70e-4717-a631-5f1e85756a5c';
   leaderboardLogger.info('Using test series UUID for leaderboard', { testSeriesUuid });
 
   // Fetch leaderboard using web-compatible API (EXACT SAME AS WEB)

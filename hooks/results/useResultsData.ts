@@ -65,7 +65,7 @@ export const useResultsData = (): ResultsData => {
 
   // ✅ NEW: Fetch test-series specific leaderboard to get user's rank
   const { data: leaderboardData } = useGetTestSeriesLeaderboardWebQuery(
-    { testSeriesUuid: seriesUuid as string, limit: 100 },
+    { testSeriesUuid: sessionId || seriesUuid as string, limit: 100 },
     { skip: !seriesUuid }
   );
 

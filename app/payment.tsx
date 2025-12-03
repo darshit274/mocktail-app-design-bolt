@@ -130,20 +130,6 @@ export default function PaymentScreen() {
       description: t.payment.razorpayDesc,
       icon: CreditCard,
       recommended: true
-    },
-    {
-      id: 'upi',
-      name: t.payment.upi,
-      description: t.payment.upiDesc,
-      icon: Smartphone,
-      recommended: false
-    },
-    {
-      id: 'wallet',
-      name: t.payment.digitalWallet,
-      description: t.payment.walletDesc,
-      icon: Wallet,
-      recommended: false
     }
   ];
 
