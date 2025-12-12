@@ -17,6 +17,7 @@ import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
 import { SubscriptionRequiredModal } from '@/components/modals/SubscriptionRequiredModal';
 import Toast from 'react-native-toast-message';
 import { useSubscriptionAccess, getSeriesButtonState } from '@/hooks/useSubscriptionAccess';
+import RenderHTML from 'react-native-render-html';
 
 export default function SeriesDetailScreen() {
   const { seriesUuid, title } = useLocalSearchParams<{ seriesUuid: string; title: string }>();
@@ -264,9 +265,11 @@ export default function SeriesDetailScreen() {
               </Text>
             </View>
             {category.description && (
-              <Text style={[styles.categoryDescription, { color: Colors.textSubtle }]}>
-                {category.description}
-              </Text>
+              <RenderHTML
+                source={{
+                  html: category.description || ''
+                }}
+              />
             )}
           </View>
           <ChevronRight size={20} color={isLocked ? Colors.textTertiary : Colors.textSubtle} />
@@ -413,11 +416,13 @@ export default function SeriesDetailScreen() {
           </Text>
 
           {(series.description || series.description_gujarati) && (
-            <Text style={[styles.seriesDescription, { color: Colors.textSubtle }]}>
-              {t.language === 'gujarati' && series.description_gujarati
-                ? series.description_gujarati
-                : series.description}
-            </Text>
+            <RenderHTML
+              source={{
+                html: t.language === 'gujarati' && series.description_gujarati
+                  ? series.description_gujarati
+                  : series.description || ''
+              }}
+            />
           )}
 
           {/* Access Information */}

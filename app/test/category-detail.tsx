@@ -21,6 +21,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { LoadingState, ErrorState } from '@/components/shared';
 import { SubscriptionRequiredModal } from '@/components/modals/SubscriptionRequiredModal';
 import logger from '@/utils/logger';
+import RenderHTML from 'react-native-render-html';
 
 const categoryLogger = logger.createLogger('CategoryDetail');
 
@@ -343,7 +344,7 @@ export default function CategoryDetailScreen() {
             const isQuestionHolder = subcategory.node_type === 'question_holder';
             const isFreeInPaid = isPaidSeries && !hasSeriesAccess && isQuestionHolder && subcategory.is_free_in_paid_series === true;
             const isLocked = isPaidSeries && !hasSeriesAccess && isQuestionHolder && !isAccessible;
-            const isComplated = testHistoryData?.data?.sessions?.some(
+            const isCompleted = testHistoryData?.data?.sessions?.some(
               (item: any) => {
                 return item?.testId == subcategory?.uuid;
               }
@@ -399,9 +400,9 @@ export default function CategoryDetailScreen() {
                         <Text style={styles.lockedBadgeText}>LOCKED</Text>
                       </View>
                     )}
-                    {isComplated && (
+                    {isCompleted && (
                       <View style={styles.completedBadge}>
-                        <Text style={styles.completedBadgeText}>Complated</Text>
+                        <Text style={styles.completedBadgeText}>COMPLETED</Text>
                       </View>
                     )}
                     <View style={styles.levelBadge}>
@@ -595,11 +596,13 @@ export default function CategoryDetailScreen() {
         {/* Category Description */}
         {(category.description || category.description_gujarati) && (
           <View style={styles.descriptionContainer}>
-            <Text style={styles.descriptionText}>
-              {language === 'gujarati'
-                ? (category.description_gujarati || category.description)
-                : (category.description || category.description_gujarati)}
-            </Text>
+            <RenderHTML
+              source={{
+                html: language === 'gujarati'
+                  ? (category.description_gujarati || category.description)
+                  : (category.description || category.description_gujarati)
+              }}
+            />
           </View>
         )}
 

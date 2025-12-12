@@ -10,6 +10,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Clock, Play, Lock, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { DynamicTestSeries } from '@/store/api/dynamicHierarchyApi';
 import { ThemeColors } from '@/types';
+import RenderHTML from 'react-native-render-html';
 
 /**
  * Props for TestSeriesCard component
@@ -125,9 +126,11 @@ export const TestSeriesCard = memo<TestSeriesCardProps>(({
 
       {/* Description */}
       {series.description && (
-        <Text style={[styles.seriesDescription, { color: Colors.textSubtle }]} numberOfLines={2}>
-          {series.description}
-        </Text>
+        <RenderHTML
+          source={{
+            html: series.description || ''
+          }}
+        />
       )}
 
       {/* Stats */}
@@ -256,6 +259,7 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: 'row',
     marginBottom: 16,
+    marginTop: 8,
   },
   statItem: {
     flexDirection: 'row',

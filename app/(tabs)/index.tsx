@@ -1,12 +1,12 @@
 import React, { useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Search, Play, BookOpen, FileText, User, ShoppingBag, File } from 'lucide-react-native';
+import { Bell, Search, Play, BookOpen, FileText, User, ShoppingBag, File, Clock, CheckCircle, Trophy, Calendar } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useGetProfileQuery } from '@/store/api/userApi';
+import { useGetProfileQuery, useGetDashboardStatsQuery } from '@/store/api/userApi';
 import { UI } from '@/utils/appConstants';
 import { QuickActionCard } from '@/components/home';
 
@@ -15,8 +15,10 @@ export default function HomeScreen() {
   const Colors = getTheme(theme);
   const { t } = useLanguage();
   const { data: profileData } = useGetProfileQuery();
+  const { data: dashboardData, isLoading: isDashboardLoading } = useGetDashboardStatsQuery();
 
   const userProfile = profileData?.data;
+  const dashboardStats = dashboardData?.data;
 
   // Memoize quick actions array to prevent recreation on every render
   // Note: "Free Samples" removed - replaced with inline hierarchy navigation
@@ -31,6 +33,33 @@ export default function HomeScreen() {
   // Memoize navigation handlers
   const handleQuickActionPress = useCallback((route: string) => {
     router.push(route as any);
+  }, []);
+
+  // Format date helper
+  const formatDate = useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const isToday = date.toDateString() === today.toDateString();
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    const timeStr = date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    if (isToday) return `Today at ${timeStr}`;
+    if (isYesterday) return `Yesterday at ${timeStr}`;
+
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }, []);
 
   // Memoize styles to prevent recalculation
@@ -84,6 +113,124 @@ export default function HomeScreen() {
               />
             ))}
           </View>
+        </View>
+
+        {/* Stats Cards Row */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your Progress</Text>
+          {isDashboardLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+            </View>
+          ) : (
+            <View style={styles.statsRow}>
+              <TouchableOpacity
+                style={[styles.statCard, { backgroundColor: Colors.primary + '15' }]}
+                onPress={() => router.push('/test-series' as any)}
+              >
+                <View style={[styles.statIconContainer, { backgroundColor: Colors.primary }]}>
+                  <BookOpen size={20} color={Colors.white} />
+                </View>
+                <Text style={styles.statValue}>{dashboardStats?.totalTests || 0}</Text>
+                <Text style={styles.statLabel}>Total Tests</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.statCard, { backgroundColor: Colors.success + '15' }]}
+                onPress={() => router.push('/test-history' as any)}
+              >
+                <View style={[styles.statIconContainer, { backgroundColor: Colors.success }]}>
+                  <CheckCircle size={20} color={Colors.white} />
+                </View>
+                <Text style={styles.statValue}>{dashboardStats?.completedTests || 0}</Text>
+                <Text style={styles.statLabel}>Completed</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.statCard, { backgroundColor: '#9333ea15' }]}
+                onPress={() => router.push('/purchased-series' as any)}
+              >
+                <View style={[styles.statIconContainer, { backgroundColor: '#9333ea' }]}>
+                  <Trophy size={20} color={Colors.white} />
+                </View>
+                <Text style={styles.statValue}>{dashboardStats?.activeSubscriptions || 0}</Text>
+                <Text style={styles.statLabel}>Active</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Recent Activity */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          {isDashboardLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+            </View>
+          ) : !dashboardStats?.recentActivity || dashboardStats.recentActivity.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={[styles.emptyIconContainer, { backgroundColor: Colors.cardBackground }]}>
+                <Clock size={32} color={Colors.textSubtle} />
+              </View>
+              <Text style={styles.emptyTitle}>No recent activity</Text>
+              <Text style={styles.emptyText}>Start taking tests to see your progress here</Text>
+              <TouchableOpacity
+                style={[styles.emptyButton, { backgroundColor: Colors.primary }]}
+                onPress={() => router.push('/free-tests' as any)}
+              >
+                <Text style={styles.emptyButtonText}>Take Free Test</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.activityList}>
+              {dashboardStats.recentActivity.slice(0, 5).map((activity) => (
+                <View key={activity.id} style={styles.activityCard}>
+                  <View style={[
+                    styles.activityIcon,
+                    { backgroundColor: activity.type === 'test' ? Colors.primary + '20' : '#9333ea20' }
+                  ]}>
+                    {activity.type === 'test' ? (
+                      <BookOpen size={20} color={Colors.primary} />
+                    ) : (
+                      <FileText size={20} color="#9333ea" />
+                    )}
+                  </View>
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityTitle} numberOfLines={1}>
+                      {activity.title}
+                    </Text>
+                    <View style={styles.activityMeta}>
+                      <Calendar size={12} color={Colors.textSubtle} />
+                      <Text style={styles.activityDate}>{formatDate(activity.date)}</Text>
+                    </View>
+                  </View>
+                  {/* {activity.percentage !== undefined && (
+                    <View style={[
+                      styles.percentageBadge,
+                      {
+                        backgroundColor:
+                          activity.percentage >= 75 ? Colors.success + '20' :
+                          activity.percentage >= 50 ? Colors.warning + '20' :
+                          Colors.error + '20'
+                      }
+                    ]}>
+                      <Text style={[
+                        styles.percentageText,
+                        {
+                          color:
+                            activity.percentage >= 75 ? Colors.success :
+                            activity.percentage >= 50 ? Colors.warning :
+                            Colors.error
+                        }
+                      ]}>
+                        {activity.percentage}%
+                      </Text>
+                    </View>
+                  )} */}
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -239,12 +386,127 @@ const getStyles = (Colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Stats Cards Row
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: Colors.textSubtle,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  // Recent Activity
+  activityList: {
+    gap: 12,
+  },
+  activityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBackground,
+    padding: 12,
+    borderRadius: 12,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  activityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  activityMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  activityDate: {
+    fontSize: 12,
+    color: Colors.textSubtle,
+  },
+  percentageBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  percentageText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // Empty State
   emptyState: {
     paddingVertical: 40,
+    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.cardBackground,
     borderRadius: 12,
+  },
+  emptyIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textSubtle,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  emptyButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  emptyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.white,
   },
   emptyStateText: {
     fontSize: 14,
