@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Settings, LogOut, ChevronRight, BookOpen, Globe, Moon } from 'lucide-react-native';
+import { User, Settings, LogOut, ChevronRight, BookOpen, Globe, Moon, HelpCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { getTheme } from '@/theme';
@@ -62,6 +62,13 @@ export default function ProfileScreen() {
       route: '/theme-selector',
       description: 'Choose your preferred color scheme',
     },
+    {
+      id: 7,
+      title: t.profile.help,
+      icon: HelpCircle,
+      route: 'https://mocktaleacademy.com/',
+      description: 'Get help and contact support',
+    }
   ];
 
   const handleMenuPress = (route: string) => {
@@ -124,7 +131,7 @@ export default function ProfileScreen() {
         >
           <View style={styles.profileInfo}>
             {userProfile?.avatarUrl ? (
-              <Image 
+              <Image
                 source={{ uri: userProfile.avatarUrl }}
                 style={styles.profileImage}
               />
@@ -139,14 +146,14 @@ export default function ProfileScreen() {
               </Text>
               <Text style={styles.profileEmail}>{userProfile?.email || ''}</Text>
               <Text style={styles.profileJoined}>
-                Member since {userProfile?.created_at ? 
-                  new Date(userProfile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) 
+                Member since {userProfile?.created_at ?
+                  new Date(userProfile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                   : 'N/A'}
               </Text>
             </View>
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.editButton}
             onPress={() => router.push('/account-settings')}
           >
@@ -157,7 +164,7 @@ export default function ProfileScreen() {
         {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push('/test-history')}
           >
@@ -192,7 +199,7 @@ export default function ProfileScreen() {
                   <Text style={styles.menuItemDescription}>{item.description}</Text>
                 </View>
               </View>
-              
+
               <View style={styles.menuItemRight}>
                 {item.hasSwitch ? (
                   <Switch

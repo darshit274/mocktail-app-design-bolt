@@ -699,6 +699,8 @@ const getStyles = (Colors: any) => StyleSheet.create({
   descriptionContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
+    maxHeight: 80,
+    overflow: 'hidden',
   },
   descriptionText: {
     fontSize: 16,

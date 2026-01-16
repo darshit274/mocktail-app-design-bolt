@@ -88,14 +88,14 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
-          <View style={styles.headerRight}>
+          {/* <View style={styles.headerRight}>
             <TouchableOpacity style={styles.iconButton}>
               <Search size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconButton}>
               <Bell size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
-          </View>
+          </View> */}
         </View>
 
         {/* Quick Actions */}

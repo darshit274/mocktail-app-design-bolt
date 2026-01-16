@@ -14,6 +14,7 @@ import { WebView } from 'react-native-webview';
 import { Modal } from 'react-native';
 import { API_CONFIG } from '@/config/constants';
 import logger from '@/utils/logger';
+import RenderHTML from 'react-native-render-html';
 
 const paymentLogger = logger.createLogger('Payment');
 
@@ -33,11 +34,11 @@ export default function PaymentScreen() {
   const [verifyPayment] = useVerifyPaymentMutation();
 
   // Fetch test series data from API
-  const { 
-    data: seriesResponse, 
-    isLoading, 
-    isError, 
-    error 
+  const {
+    data: seriesResponse,
+    isLoading,
+    isError,
+    error
   } = useGetTestSeriesByIdQuery(seriesId || '', {
     skip: !seriesId
   });
@@ -52,7 +53,7 @@ export default function PaymentScreen() {
 
   // Helper function to create Razorpay hosted checkout URL
   const createRazorpayPaymentURL = (orderData: any) => {
-    const baseURL = ( API_CONFIG.BASE_URL || 'http://localhost:3000')+'/api/payments/checkout';
+    const baseURL = (API_CONFIG.BASE_URL || 'http://localhost:3000') + '/api/payments/checkout';
     const params = new URLSearchParams({
       keyId: orderData.keyId,
       amount: orderData.amount.toString(),
@@ -63,7 +64,7 @@ export default function PaymentScreen() {
       itemPrice: orderData.itemDetails.price.toString(),
       subscriptionId: orderData.subscriptionId
     });
-    
+
     return `${baseURL}/${orderData.orderId}?${params.toString()}`;
   };
 
@@ -135,9 +136,9 @@ export default function PaymentScreen() {
 
   const handlePayment = async () => {
     if (!series || isProcessing) return;
-    
+
     setIsProcessing(true);
-    
+
     try {
       // Step 1: Create payment order
       paymentLogger.info('Creating payment order', { seriesId });
@@ -216,12 +217,12 @@ export default function PaymentScreen() {
         }, 2000);
       }
     }
-    
+
     // Check if the URL indicates payment failure
     if (url.includes('payment-failed') || url.includes('error')) {
       paymentLogger.warn('Payment failed');
       setShowPaymentWebView(false);
-      
+
       Alert.alert(
         'Payment Failed',
         'Payment could not be completed. Please try again.',
@@ -281,7 +282,7 @@ export default function PaymentScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -290,7 +291,7 @@ export default function PaymentScreen() {
           <Text style={styles.headerTitle}>{t.payment.purchaseTestSeries}</Text>
           <View style={styles.placeholder} />
         </View>
-        
+
         <View style={styles.skeletonLoadingContainer}>
           <SkeletonLoader height={200} style={{ margin: 20, borderRadius: 16 }} />
           <SkeletonLoader height={250} style={{ margin: 20, marginTop: 0, borderRadius: 16 }} />
@@ -305,7 +306,7 @@ export default function PaymentScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -314,7 +315,7 @@ export default function PaymentScreen() {
           <Text style={styles.headerTitle}>{t.payment.purchaseTestSeries}</Text>
           <View style={styles.placeholder} />
         </View>
-        
+
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>
             {t.common.errorLoadingData || 'Failed to load test series details'}
@@ -329,10 +330,10 @@ export default function PaymentScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -345,29 +346,34 @@ export default function PaymentScreen() {
         {/* Series Summary */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>{series.name || series.title}</Text>
-          <Text style={styles.summaryDescription}>{series.description || ''}</Text>
+          {/* <Text style={styles.summaryDescription}>{series.description || ''}</Text> */}
+          <RenderHTML
+            source={{
+              html: series.description || ''
+            }}
+          />
         </View>
 
         {/* Price Summary */}
         <View style={styles.priceCard}>
           <Text style={styles.priceCardTitle}>{t.payment.priceDetails}</Text>
-          
+
           {series.original_price && series.original_price > series.price && (
             <>
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>{t.payment.originalPrice}</Text>
                 <Text style={styles.originalPrice}>₹{series.original_price}</Text>
               </View>
-              
+
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>{t.payment.discount} ({calculateDiscount()}% {t.payment.off})</Text>
                 <Text style={styles.discountAmount}>-₹{series.original_price - series.price}</Text>
               </View>
-              
+
               <View style={styles.divider} />
             </>
           )}
-          
+
           <View style={styles.priceRow}>
             <Text style={styles.totalLabel}>{t.payment.totalAmount}</Text>
             <Text style={styles.totalPrice}>₹{series.price}</Text>
@@ -385,7 +391,7 @@ export default function PaymentScreen() {
         {/* Payment Methods */}
         <View style={styles.paymentCard}>
           <Text style={styles.paymentTitle}>{t.payment.selectPaymentMethod}</Text>
-          
+
           {paymentMethods.map((method) => (
             <TouchableOpacity
               key={method.id}
@@ -400,9 +406,9 @@ export default function PaymentScreen() {
                   styles.paymentIcon,
                   selectedPaymentMethod === method.id && styles.selectedPaymentIcon
                 ]}>
-                  <method.icon 
-                    size={24} 
-                    color={selectedPaymentMethod === method.id ? Colors.primary : Colors.textSubtle} 
+                  <method.icon
+                    size={24}
+                    color={selectedPaymentMethod === method.id ? Colors.primary : Colors.textSubtle}
                   />
                 </View>
                 <View>
@@ -417,7 +423,7 @@ export default function PaymentScreen() {
                   <Text style={styles.paymentMethodDesc}>{method.description}</Text>
                 </View>
               </View>
-              
+
               <View style={[
                 styles.radioButton,
                 selectedPaymentMethod === method.id && styles.selectedRadioButton
@@ -463,61 +469,61 @@ export default function PaymentScreen() {
               )}
             </LinearGradient>
           </TouchableOpacity>
-          
+
           <Text style={styles.paymentNote}>
             {t.payment.termsNote}
           </Text>
         </View>
-        </ScrollView>
+      </ScrollView>
 
-        {/* Payment WebView Modal */}
-        <Modal
-          visible={showPaymentWebView}
-          animationType="slide"
-          presentationStyle="pageSheet"
-        >
-          <SafeAreaView style={styles.webViewContainer}>
-            <View style={styles.webViewHeader}>
-              <TouchableOpacity
-                style={styles.closeWebViewButton}
-                onPress={() => {
-                  setShowPaymentWebView(false);
-                  Alert.alert(
-                    'Payment Cancelled',
-                    'Payment was cancelled. You can try again anytime.',
-                    [{ text: t.common.ok || 'OK' }]
-                  );
-                }}
-              >
-                <Text style={styles.closeWebViewButtonText}>✕ Close</Text>
-              </TouchableOpacity>
-              <Text style={styles.webViewHeaderTitle}>Secure Payment</Text>
-              <View style={styles.placeholder} />
-            </View>
-            
-            {paymentUrl && (
-              <WebView
-                source={{ uri: paymentUrl }}
-                style={styles.webView}
-                onNavigationStateChange={handleWebViewNavigationStateChange}
-                onMessage={handleWebViewMessage}
-                startInLoadingState={true}
-                renderLoading={() => (
-                  <View style={styles.webViewLoading}>
-                    <ActivityIndicator size="large" color={Colors.primary} />
-                    <Text style={styles.webViewLoadingText}>Loading secure payment...</Text>
-                  </View>
-                )}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                allowsInlineMediaPlayback={true}
-                mixedContentMode="compatibility"
-                allowsFullscreenVideo={true}
-              />
-            )}
-          </SafeAreaView>
-        </Modal>
-      </SafeAreaView>
+      {/* Payment WebView Modal */}
+      <Modal
+        visible={showPaymentWebView}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.webViewContainer}>
+          <View style={styles.webViewHeader}>
+            <TouchableOpacity
+              style={styles.closeWebViewButton}
+              onPress={() => {
+                setShowPaymentWebView(false);
+                Alert.alert(
+                  'Payment Cancelled',
+                  'Payment was cancelled. You can try again anytime.',
+                  [{ text: t.common.ok || 'OK' }]
+                );
+              }}
+            >
+              <Text style={styles.closeWebViewButtonText}>✕ Close</Text>
+            </TouchableOpacity>
+            <Text style={styles.webViewHeaderTitle}>Secure Payment</Text>
+            <View style={styles.placeholder} />
+          </View>
+
+          {paymentUrl && (
+            <WebView
+              source={{ uri: paymentUrl }}
+              style={styles.webView}
+              onNavigationStateChange={handleWebViewNavigationStateChange}
+              onMessage={handleWebViewMessage}
+              startInLoadingState={true}
+              renderLoading={() => (
+                <View style={styles.webViewLoading}>
+                  <ActivityIndicator size="large" color={Colors.primary} />
+                  <Text style={styles.webViewLoadingText}>Loading secure payment...</Text>
+                </View>
+              )}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              allowsInlineMediaPlayback={true}
+              mixedContentMode="compatibility"
+              allowsFullscreenVideo={true}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
   );
 }
 

@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Play, Clock, BookOpen, FileText, AlertCircle, Award } from 'lucide-react-native';
+import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { PYQTest, useGetPreviousYearsTestsQuery } from '@/store/api/pyqApi';
+import { getTheme } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { getTheme } from '@/theme';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useGetPreviousYearsTestsQuery, PYQTest } from '@/store/api/pyqApi';
-import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
+import { AlertCircle, FileText, Play } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import RenderHTML from 'react-native-render-html';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PYQsScreen() {
   const { theme } = useTheme();
@@ -81,9 +82,13 @@ export default function PYQsScreen() {
         <View style={styles.testTitleContainer}>
           <Text style={styles.testTitle}>{test.name}</Text>
           {test.description && (
-            <Text style={styles.testDescription} numberOfLines={2}>
-              {test.description}
-            </Text>
+            <View style={styles.testDescription}>
+              <RenderHTML
+                source={{
+                  html: test.description || ''
+                }}
+              />
+            </View>
           )}
         </View>
       </View>

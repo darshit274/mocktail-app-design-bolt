@@ -126,11 +126,13 @@ export const TestSeriesCard = memo<TestSeriesCardProps>(({
 
       {/* Description */}
       {series.description && (
-        <RenderHTML
-          source={{
-            html: series.description || ''
-          }}
-        />
+        <View style={styles.seriesDescription}>
+          <RenderHTML
+            source={{
+              html: series.description || ''
+            }}
+          />
+        </View>
       )}
 
       {/* Stats */}
@@ -255,6 +257,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 12,
+    maxHeight: 80,
+    overflow: 'hidden',
   },
   statsContainer: {
     flexDirection: 'row',
