@@ -52,7 +52,7 @@ export const gu = {
     enterPhone: 'તમારો ફોન નંબર દાખલ કરો',
     createPassword: 'પાસવર્ડ બનાવો',
     confirmYourPassword: 'તમારા પાસવર્ડની પુષ્ટિ કરો',
-    
+
     // OTP Verification
     otpVerification: 'OTP વેરિફિકેશન',
     otpSubtitle: 'તમારા ઈમેલ પર મોકલેલો કોડ દાખલ કરો',
@@ -71,7 +71,7 @@ export const gu = {
     otpVerifiedSuccess: 'OTP સફળતાપૂર્વક વેરિફાઈ થયું',
     accountVerified: 'તમારું એકાઉન્ટ વેરિફાઈ થઈ ગયું છે!',
     verificationFailed: 'વેરિફિકેશન નિષ્ફળ',
-    
+
     // Forgot Password
     forgotPassword: 'પાસવર્ડ ભૂલી ગયા',
     forgotPasswordSubtitle: 'તમારો પાસવર્ડ રીસેટ કરવા માટે તમારું ઈમેલ દાખલ કરો',
@@ -82,7 +82,7 @@ export const gu = {
     resetEmailSentMessage: 'રીસેટ કોડ માટે તમારું ઈમેલ તપાસો.',
     resetEmailFailed: 'રીસેટ ઈમેલ મોકલવામાં નિષ્ફળ',
     rememberPassword: 'તમારો પાસવર્ડ યાદ છે?',
-    
+
     // Validation Messages
     validation: {
       emailRequired: 'ઈમેલ જરૂરી છે',
@@ -96,13 +96,13 @@ export const gu = {
       otpLength: 'OTP 4 અંકનો હોવો જોઈએ',
       noPendingVerification: 'કોઈ પેન્ડિંગ વેરિફિકેશન નથી. કૃપા કરીને ફરીથી રજિસ્ટર કરો.',
     },
-    
+
     // Success Messages
     loginSuccess: 'લૉગિન સફળ',
     signupSuccess: 'રજિસ્ટ્રેશન સફળ',
     otpSentSuccess: 'OTP સફળતાપૂર્વક મોકલ્યું',
     passwordResetSuccess: 'પાસવર્ડ રીસેટ લિંક મોકલી',
-    
+
     // Error Messages
     loginFailed: 'લૉગિન નિષ્ફળ',
     signupFailed: 'રજિસ્ટ્રેશન નિષ્ફળ',
@@ -227,6 +227,7 @@ export const gu = {
     testHistory: 'ટેસ્ટ ઇતિહાસ',
     achievements: 'સિદ્ધિઓ',
     subscription: 'સબ્સ્ક્રિપ્શન',
+    source: "સ્ત્રોતો & ડિસક્લેમર"
   },
 
   // Quiz/Test

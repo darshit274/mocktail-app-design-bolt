@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Play, Clock, Users, Award, BookOpen, Filter, Star, AlertCircle } from 'lucide-react-native';
+import DisplayHtml from '@/components/common/DisplayHtml';
+import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { FreeTest, useGetFreeTestCategoriesQuery, useGetFreeTestsQuery, useGetFreeTestStatsQuery } from '@/store/api/freeTestsApi';
+import { getTheme } from '@/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { getTheme } from '@/theme';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useGetFreeTestsQuery, useGetFreeTestCategoriesQuery, useGetFreeTestStatsQuery, FreeTest } from '@/store/api/freeTestsApi';
-import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
+import { AlertCircle, BookOpen, Play } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function FreeTestsScreen() {
   const { theme } = useTheme();
@@ -116,8 +117,15 @@ export default function FreeTestsScreen() {
       <View style={styles.testHeader}>
         <View style={styles.testTitleContainer}>
           <Text style={styles.testTitle}>{test.title}</Text>
+          {/* {console.log(test.description)} */}
           {test.description && (
-            <Text style={styles.testDescription}>{test.description}</Text>
+            <View style={styles.testDescription}>
+              <DisplayHtml
+                source={{
+                  html: test.description || ''
+                }}
+              />
+            </View>
           )}
         </View>
       </View>
@@ -174,9 +182,9 @@ export default function FreeTestsScreen() {
         </View>
 
         {/* Categories */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
           style={styles.categoriesContainer}
           contentContainerStyle={styles.categoriesContent}
         >
@@ -209,10 +217,10 @@ export default function FreeTestsScreen() {
         {/* Free Tests List */}
         <View style={styles.testsContainer}>
           <Text style={styles.sectionTitle}>
-            {selectedCategory === '' ? t.freeTests.allFreeTests : categories.find(c => c.key === selectedCategory)?.label} 
+            {selectedCategory === '' ? t.freeTests.allFreeTests : categories.find(c => c.key === selectedCategory)?.label}
             {pagination && ` (${pagination.total})`}
           </Text>
-          
+
           {testsLoading ? (
             // Show skeleton loaders for tests
             Array.from({ length: 3 }).map((_, index) => (

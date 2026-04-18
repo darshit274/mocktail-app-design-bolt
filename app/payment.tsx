@@ -15,6 +15,7 @@ import { Modal } from 'react-native';
 import { API_CONFIG } from '@/config/constants';
 import logger from '@/utils/logger';
 import RenderHTML from 'react-native-render-html';
+import DisplayHtml from '@/components/common/DisplayHtml';
 
 const paymentLogger = logger.createLogger('Payment');
 
@@ -347,7 +348,7 @@ export default function PaymentScreen() {
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>{series.name || series.title}</Text>
           {/* <Text style={styles.summaryDescription}>{series.description || ''}</Text> */}
-          <RenderHTML
+          <DisplayHtml
             source={{
               html: series.description || ''
             }}

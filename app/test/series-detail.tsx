@@ -1,23 +1,21 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Star, Clock, Play, Lock, Users, Gift, Award, BookOpen, ChevronRight, Folder, FileQuestion, CheckCircle } from 'lucide-react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { getTheme } from '@/theme';
-import { useTheme } from '@/contexts/ThemeContext';
+import DisplayHtml from '@/components/common/DisplayHtml';
+import { SubscriptionRequiredModal } from '@/components/modals/SubscriptionRequiredModal';
+import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { getSeriesButtonState, useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import {
-  useGetDynamicTestSeriesByUuidQuery,
-  DynamicTestSeries,
   DynamicCategory,
-  convertDynamicCategoryToTestFormat
+  useGetDynamicTestSeriesByUuidQuery
 } from '@/store/api/dynamicHierarchyApi';
 import { useGetTestHistoryQuery } from '@/store/api/userApi';
-import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
-import { SubscriptionRequiredModal } from '@/components/modals/SubscriptionRequiredModal';
+import { getTheme } from '@/theme';
+import { router, useLocalSearchParams } from 'expo-router';
+import { ArrowLeft, BookOpen, ChevronRight, FileQuestion, Folder, Lock } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import { useSubscriptionAccess, getSeriesButtonState } from '@/hooks/useSubscriptionAccess';
-import RenderHTML from 'react-native-render-html';
 
 export default function SeriesDetailScreen() {
   const { seriesUuid, title } = useLocalSearchParams<{ seriesUuid: string; title: string }>();
@@ -265,7 +263,7 @@ export default function SeriesDetailScreen() {
               </Text>
             </View>
             {category.description && (
-              <RenderHTML
+              <DisplayHtml
                 source={{
                   html: category.description || ''
                 }}
@@ -416,7 +414,7 @@ export default function SeriesDetailScreen() {
           </Text>
 
           {(series.description || series.description_gujarati) && (
-            <RenderHTML
+            <DisplayHtml
               source={{
                 html: t.language === 'gujarati' && series.description_gujarati
                   ? series.description_gujarati

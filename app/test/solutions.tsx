@@ -26,6 +26,7 @@ import {
   SolutionNavigation,
   QuestionNavigatorGrid,
 } from '@/components/solutions';
+import { ShowAllExplanationsToggle } from '@/components/solutions/ShowAllExplanationsToggle';
 
 export default function SolutionsScreen() {
   const params = useLocalSearchParams();
@@ -37,6 +38,7 @@ export default function SolutionsScreen() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showAnswers, setShowAnswers] = useState<{ [key: number]: boolean }>({});
   const [showGrid, setShowGrid] = useState(false);
+  const [isShowAllExplanations, setIsShowAllExplanations] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<'english' | 'gujarati'>(
     (params.selectedLanguage as 'english' | 'gujarati') || 'gujarati'
   );
@@ -76,8 +78,8 @@ export default function SolutionsScreen() {
     const status = question.userAnswer === undefined
       ? 'unanswered'
       : question.userAnswer === question.correctAnswer
-      ? 'correct'
-      : 'incorrect';
+        ? 'correct'
+        : 'incorrect';
 
     if (questionIndex === 0) {
       console.log('[getAnswerStatus] Question 0 status:', {
@@ -224,6 +226,11 @@ export default function SolutionsScreen() {
           onToggle={practiceMode.toggleReattemptMode}
           Colors={Colors}
         />
+        <ShowAllExplanationsToggle
+          value={isShowAllExplanations}
+          onToggle={() => setIsShowAllExplanations(p => !p)}
+          Colors={Colors}
+        />
 
         {/* Question Card */}
         <QuestionCard
@@ -265,6 +272,7 @@ export default function SolutionsScreen() {
         <ExplanationCard
           explanation={currentQuestionData.explanation}
           showExplanation={showAnswers[currentQuestion]}
+          showAllExplanation={isShowAllExplanations}
           onToggle={() => toggleShowAnswer(currentQuestion)}
           shouldShow={shouldShowExplanation}
           Colors={Colors}

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, useWindowDimensions } from 'react-native';
 import RenderHTML from 'react-native-render-html';
 import { Eye, EyeOff } from 'lucide-react-native';
@@ -7,6 +7,7 @@ import { createSolutionsStyles } from '@/styles/solutionsStyles';
 
 interface ExplanationCardProps {
   explanation: string;
+  showAllExplanation: boolean;
   showExplanation: boolean;
   onToggle: () => void;
   shouldShow: boolean; // Determines if button should be shown based on reattempt mode
@@ -15,6 +16,7 @@ interface ExplanationCardProps {
 
 export const ExplanationCard = memo<ExplanationCardProps>(({
   explanation,
+  showAllExplanation,
   showExplanation,
   onToggle,
   shouldShow,
@@ -22,11 +24,20 @@ export const ExplanationCard = memo<ExplanationCardProps>(({
 }) => {
   const styles = createSolutionsStyles(Colors);
   const { width } = useWindowDimensions();
-
+  const [showCurrentExplanation, setCurrentShowExplanation] = useState(showAllExplanation || showExplanation)
+  useEffect(() => {
+    setCurrentShowExplanation(showAllExplanation || showExplanation)
+  }, [showAllExplanation, showExplanation])
   if (!shouldShow) {
     return null;
   }
-
+  const toggleExplanation = () => {
+    if (showAllExplanation) {
+      setCurrentShowExplanation(p => !p)
+    } else {
+      onToggle()
+    }
+  }
   // Preprocess explanation to ensure line breaks are properly formatted
   const formatExplanation = (text: string): string => {
     if (!text) return '<p>No explanation available.</p>';
@@ -53,19 +64,19 @@ export const ExplanationCard = memo<ExplanationCardProps>(({
   return (
     <>
       {/* Show/Hide Explanation Button */}
-      <TouchableOpacity style={styles.showAnswerButton} onPress={onToggle}>
-        {showExplanation ? (
+      <TouchableOpacity style={styles.showAnswerButton} onPress={toggleExplanation}>
+        {showCurrentExplanation ? (
           <EyeOff size={20} color={Colors.primary} />
         ) : (
           <Eye size={20} color={Colors.primary} />
         )}
         <Text style={styles.showAnswerText}>
-          {showExplanation ? 'Hide Explanation' : 'Show Explanation'}
+          {showCurrentExplanation ? 'Hide Explanation' : 'Show Explanation'}
         </Text>
       </TouchableOpacity>
 
       {/* Explanation Content */}
-      {showExplanation && (
+      {showCurrentExplanation && (
         <View style={styles.explanationCard}>
           <Text style={styles.explanationTitle}>Explanation</Text>
           <RenderHTML

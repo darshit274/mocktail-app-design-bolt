@@ -31,6 +31,13 @@ export interface DynamicTestSeries {
   tests_count: number;
 }
 
+export interface EnrolledTestSeriesParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+
 export interface DynamicCategory {
   id: number;
   uuid: string;
@@ -60,7 +67,7 @@ export interface DynamicQuestion {
   uuid: string;
   question_text: string;
   question_text_gujarati?: string;
-  
+
   // Options
   option_a: string;
   option_a_gujarati?: string;
@@ -70,7 +77,7 @@ export interface DynamicQuestion {
   option_c_gujarati?: string;
   option_d: string;
   option_d_gujarati?: string;
-  
+
   // Options formatted for quiz
   options?: {
     A: string;
@@ -78,7 +85,7 @@ export interface DynamicQuestion {
     C: string;
     D: string;
   };
-  
+
   correct_answer: 'A' | 'B' | 'C' | 'D';
   explanation?: string;
   explanation_gujarati?: string;
@@ -179,25 +186,41 @@ export const dynamicHierarchyApi = createApi({
   reducerPath: 'dynamicHierarchyApi',
   baseQuery: baseQueryWithReauth,
   tagTypes: ['DynamicTestSeries', 'DynamicCategory', 'DynamicQuestion', 'DynamicSolution'],
-  
+
   endpoints: (builder) => ({
-    
+
     // =====================================================
     // TEST SERIES ENDPOINTS
     // =====================================================
-    
+
     // Get test series list (replaces old getTestSeries)
     getDynamicTestSeries: builder.query<DynamicTestSeriesListResponse, DynamicTestSeriesListParams>({
       query: (params = {}) => {
         const queryParams = new URLSearchParams();
-        
+
         if (params.page) queryParams.append('page', params.page.toString());
         if (params.limit) queryParams.append('limit', params.limit.toString());
         if (params.search) queryParams.append('search', params.search);
         if (params.pricing_type) queryParams.append('pricing_type', params.pricing_type);
         if (params.is_featured !== undefined) queryParams.append('is_featured', params.is_featured.toString());
-        
+
         return `dynamic/test-series?${queryParams.toString()}`;
+      },
+      providesTags: ['DynamicTestSeries'],
+    }),
+
+    getEnrolledTestSeries: builder.query<
+      DynamicTestSeriesListResponse,
+      EnrolledTestSeriesParams
+    >({
+      query: (params = {}) => {
+        const queryParams = new URLSearchParams();
+
+        if (params.page) queryParams.append('page', params.page.toString());
+        if (params.limit) queryParams.append('limit', params.limit.toString());
+        if (params.search) queryParams.append('search', params.search);
+
+        return `tests/enrolled?${queryParams.toString()}`;
       },
       providesTags: ['DynamicTestSeries'],
     }),
@@ -214,7 +237,7 @@ export const dynamicHierarchyApi = createApi({
     // =====================================================
     // CATEGORY NAVIGATION ENDPOINTS
     // =====================================================
-    
+
     // Get category details (replaces old category/subcategory endpoints)
     getDynamicCategoryByUuid: builder.query<DynamicCategoryResponse, string>({
       query: (uuid) => `dynamic/categories/${uuid}`,
@@ -227,7 +250,7 @@ export const dynamicHierarchyApi = createApi({
     // =====================================================
     // QUIZ/QUESTION ENDPOINTS
     // =====================================================
-    
+
     // Get questions for quiz (replaces old test questions endpoint)
     getDynamicQuestions: builder.query<DynamicQuestionsResponse, {
       categoryUuid: string;
@@ -238,7 +261,7 @@ export const dynamicHierarchyApi = createApi({
         const queryParams = new URLSearchParams();
         queryParams.append('language', language);
         queryParams.append('shuffle', shuffle.toString());
-        
+
         return `dynamic/categories/${categoryUuid}/questions?${queryParams.toString()}`;
       },
       providesTags: (result, error, { categoryUuid }) => [
@@ -301,7 +324,7 @@ export const dynamicHierarchyApi = createApi({
     // =====================================================
     // UTILITY ENDPOINTS
     // =====================================================
-    
+
     // Search across test series and categories
     searchDynamicContent: builder.query<{
       success: boolean;
@@ -318,7 +341,7 @@ export const dynamicHierarchyApi = createApi({
         const queryParams = new URLSearchParams();
         queryParams.append('q', query);
         queryParams.append('type', type);
-        
+
         return `dynamic/search?${queryParams.toString()}`;
       },
     }),
@@ -334,6 +357,7 @@ export const {
   useGetDynamicQuestionsQuery,
   useGetDynamicSolutionsQuery,
   useSearchDynamicContentQuery,
+  useGetEnrolledTestSeriesQuery
 } = dynamicHierarchyApi;
 
 // =====================================================

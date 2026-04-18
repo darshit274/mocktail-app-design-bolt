@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Settings, LogOut, ChevronRight, BookOpen, Globe, Moon, HelpCircle } from 'lucide-react-native';
+import { User, Settings, LogOut, ChevronRight, BookOpen, Globe, Moon, HelpCircle, ShieldCheck, BadgeInfo } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { getTheme } from '@/theme';
@@ -63,11 +63,25 @@ export default function ProfileScreen() {
       description: 'Choose your preferred color scheme',
     },
     {
-      id: 7,
+      id: 5,
       title: t.profile.help,
       icon: HelpCircle,
-      route: 'https://mocktaleacademy.com/',
+      route: 'https://mocktaleacademy.com/help',
       description: 'Get help and contact support',
+    },
+    {
+      id: 6,
+      title: t.profile.privacy,
+      icon: ShieldCheck,
+      route: 'https://mocktaleacademy.com/privacy',
+      description: 'Details about privacy policy',
+    },
+    {
+      id: 7,
+      title: t.profile.source,
+      icon: BadgeInfo,
+      route: 'https://mocktaleacademy.com/source',
+      description: 'Sources & Disclaimer Of platform',
     }
   ];
 

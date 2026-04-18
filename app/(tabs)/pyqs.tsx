@@ -1,3 +1,4 @@
+import DisplayHtml from '@/components/common/DisplayHtml';
 import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -8,7 +9,6 @@ import { router } from 'expo-router';
 import { AlertCircle, FileText, Play } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import RenderHTML from 'react-native-render-html';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PYQsScreen() {
@@ -83,7 +83,7 @@ export default function PYQsScreen() {
           <Text style={styles.testTitle}>{test.name}</Text>
           {test.description && (
             <View style={styles.testDescription}>
-              <RenderHTML
+              <DisplayHtml
                 source={{
                   html: test.description || ''
                 }}

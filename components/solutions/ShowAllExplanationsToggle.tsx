@@ -4,14 +4,14 @@ import { RotateCcw } from 'lucide-react-native';
 import { ThemeColors } from '@/types';
 import { createSolutionsStyles } from '@/styles/solutionsStyles';
 
-interface PracticeModeToggleProps {
-  reattemptMode: boolean;
+interface ShowAllExplanationsToggleProps {
+  value: boolean;
   onToggle: () => void;
   Colors: ThemeColors;
 }
 
-export const PracticeModeToggle = memo<PracticeModeToggleProps>(({
-  reattemptMode,
+export const ShowAllExplanationsToggle = memo<ShowAllExplanationsToggleProps>(({
+  value,
   onToggle,
   Colors
 }) => {
@@ -19,14 +19,14 @@ export const PracticeModeToggle = memo<PracticeModeToggleProps>(({
 
   return (
     <View style={styles.reattemptContainer}>
-      <Text style={styles.reattemptLabel}>Practice Mode</Text>
+      <Text style={styles.reattemptLabel}>Show All Explanations</Text>
       <View style={styles.reattemptToggle}>
-        {/* <RotateCcw size={16} color={Colors.textSubtle} /> */}
+        {/* <RotateCcw size={16} color={Colors.textSubtle} onPress={()=>onToggle(false)} /> */}
         <Switch
-          value={reattemptMode}
+          value={value}
           onValueChange={onToggle}
           trackColor={{ false: Colors.muted, true: Colors.primaryLight }}
-          thumbColor={reattemptMode ? Colors.primary : Colors.textSubtle}
+          thumbColor={value ? Colors.primary : Colors.textSubtle}
           style={{ marginLeft: 8 }}
         />
       </View>
@@ -34,4 +34,4 @@ export const PracticeModeToggle = memo<PracticeModeToggleProps>(({
   );
 });
 
-PracticeModeToggle.displayName = 'PracticeModeToggle';
+ShowAllExplanationsToggle.displayName = 'ShowAllExplanationsToggle';

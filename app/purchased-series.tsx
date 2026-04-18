@@ -1,14 +1,14 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, ArrowLeft, ShoppingBag, AlertCircle, ChevronRight } from 'lucide-react-native';
-import { router } from 'expo-router';
-import { getTheme } from '@/theme';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useGetDynamicTestSeriesQuery, DynamicTestSeries } from '@/store/api/dynamicHierarchyApi';
 import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
-import { TestSeriesCard } from '@/components/test-series';
+import { PurchasedTestSeriesCard } from '@/components/test-series/PurchasedTestSeriesCard';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { DynamicTestSeries, useGetEnrolledTestSeriesQuery } from '@/store/api/dynamicHierarchyApi';
+import { getTheme } from '@/theme';
+import { router } from 'expo-router';
+import { AlertCircle, ArrowLeft, Search, ShoppingBag } from 'lucide-react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { FlatList, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PurchasedSeriesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,7 +23,7 @@ export default function PurchasedSeriesScreen() {
     error: testSeriesError,
     isLoading: testSeriesLoading,
     refetch: refetchTestSeries,
-  } = useGetDynamicTestSeriesQuery({
+  } = useGetEnrolledTestSeriesQuery({
     page: 1,
     limit: 100, // Get all series
     search: searchQuery || undefined,
@@ -100,7 +100,7 @@ export default function PurchasedSeriesScreen() {
 
   const renderTestSeriesCard = useCallback((series: DynamicTestSeries, index: number) => {
     return (
-      <TestSeriesCard
+      <PurchasedTestSeriesCard
         series={series}
         index={index}
         accessData={{ hasAccess: true, accessType: 'subscription' }}

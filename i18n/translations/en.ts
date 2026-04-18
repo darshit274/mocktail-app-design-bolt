@@ -56,7 +56,7 @@ export const en = {
     enterPhone: 'Enter your phone number',
     createPassword: 'Create a password',
     confirmYourPassword: 'Confirm your password',
-    
+
     // OTP Verification
     otpVerification: 'OTP Verification',
     otpSubtitle: 'Enter the code sent to your email',
@@ -75,7 +75,7 @@ export const en = {
     otpVerifiedSuccess: 'OTP Verified Successfully',
     accountVerified: 'Your account has been verified!',
     verificationFailed: 'Verification Failed',
-    
+
     // Forgot Password
     forgotPassword: 'Forgot Password',
     forgotPasswordSubtitle: 'Enter your email to reset your password',
@@ -86,7 +86,7 @@ export const en = {
     resetEmailSentMessage: 'Check your email for the reset code.',
     resetEmailFailed: 'Failed to send reset email',
     rememberPassword: 'Remember your password?',
-    
+
     // Validation Messages
     validation: {
       emailRequired: 'Email is required',
@@ -100,13 +100,13 @@ export const en = {
       otpLength: 'OTP must be 4 digits',
       noPendingVerification: 'No pending verification. Please register again.',
     },
-    
+
     // Success Messages
     loginSuccess: 'Login Successful',
     signupSuccess: 'Registration Successful',
     otpSentSuccess: 'OTP sent successfully',
     passwordResetSuccess: 'Password reset link sent',
-    
+
     // Error Messages
     loginFailed: 'Login failed',
     signupFailed: 'Registration failed',
@@ -231,6 +231,7 @@ export const en = {
     testHistory: 'Test History',
     achievements: 'Achievements',
     subscription: 'Subscription',
+    source: "Sources & Disclaimer"
   },
 
   // Quiz/Test

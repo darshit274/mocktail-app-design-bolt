@@ -94,7 +94,7 @@ export default function AccountSettingsScreen() {
         avatarUrl: profile.avatarUrl || '',
       });
       setImageUri(profile.avatarUrl || null);
-      
+
       // Set the date picker date if dateOfBirth exists
       if (profile.dateOfBirth) {
         setSelectedDate(new Date(profile.dateOfBirth));
@@ -105,7 +105,7 @@ export default function AccountSettingsScreen() {
   const handleInputChange = (field: keyof ProfileFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
-    
+
     // Clear error for this field
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -155,57 +155,17 @@ export default function AccountSettingsScreen() {
 
   const pickImage = async () => {
     try {
-      // Request permissions based on platform
-      if (Platform.OS === 'web') {
-        // For web, directly launch the image picker
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.5,
-          base64: true, // Enable base64 for consistency
-        });
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: false,
+      });
 
-        if (!result.canceled && result.assets && result.assets[0]) {
-          setImageUri(result.assets[0].uri);
-          setHasChanges(true);
-        }
-      } else {
-        // For native platforms, check permissions first
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        
-        if (status !== 'granted') {
-          Alert.alert(
-            'Permission Required',
-            'Please grant photo library permissions to upload a profile picture.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Open Settings', onPress: () => {
-                // This will open app settings on iOS/Android
-                if (Platform.OS === 'ios') {
-                  Linking.openURL('app-settings:');
-                } else {
-                  Linking.openSettings();
-                }
-              }}
-            ]
-          );
-          return;
-        }
-
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.5,
-          base64: true, // Enable base64 for consistency
-        });
-
-        if (!result.canceled && result.assets && result.assets[0]) {
-          // For mobile, we'll use the URI which will be converted to base64 by the API layer
-          setImageUri(result.assets[0].uri);
-          setHasChanges(true);
-        }
+      if (!result.canceled && result.assets?.[0]) {
+        setImageUri(result.assets[0].uri);
+        setHasChanges(true);
       }
     } catch (error) {
       settingsLogger.error('Error picking image', error);
@@ -217,6 +177,7 @@ export default function AccountSettingsScreen() {
     }
   };
 
+
   const handleSave = async () => {
     if (!validateForm()) {
       return;
@@ -226,8 +187,8 @@ export default function AccountSettingsScreen() {
       // Prepare update data
       const updateData: any = {
         ...formData,
-        dateOfBirth: formData.dateOfBirth && formData.dateOfBirth !== '' 
-          ? formData.dateOfBirth 
+        dateOfBirth: formData.dateOfBirth && formData.dateOfBirth !== ''
+          ? formData.dateOfBirth
           : null,
       };
 
@@ -311,8 +272,8 @@ export default function AccountSettingsScreen() {
         <View style={styles.profilePictureSection}>
           <TouchableOpacity onPress={pickImage} style={styles.profileImageContainer}>
             {imageUri ? (
-              <Image 
-                source={{ uri: imageUri }} 
+              <Image
+                source={{ uri: imageUri }}
                 style={styles.profileImage}
               />
             ) : (
@@ -404,14 +365,14 @@ export default function AccountSettingsScreen() {
                 />
               </View>
             ) : (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.inputContainer}
                 onPress={() => setShowDatePicker(true)}
               >
                 <Calendar size={20} color={Colors.textSubtle} style={styles.inputIcon} />
                 <Text style={[
-                  styles.input, 
-                  { 
+                  styles.input,
+                  {
                     color: formData.dateOfBirth ? Colors.textPrimary : Colors.textSubtle,
                     paddingVertical: Platform.OS === 'ios' ? 18 : 16,
                   }

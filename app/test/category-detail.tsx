@@ -1,27 +1,26 @@
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft, CheckCircle, ChevronRight, FileText, Folder, Globe, Lock, Play, Timer } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
   Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Folder, FileText, Globe, Timer, Play, Lock, ChevronRight, CheckCircle } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 
+import DisplayHtml from '@/components/common/DisplayHtml';
+import { SubscriptionRequiredModal } from '@/components/modals/SubscriptionRequiredModal';
+import { ErrorState, LoadingState } from '@/components/shared';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { useGetDynamicCategoryByUuidQuery } from '@/store/api/dynamicHierarchyApi';
 import { useGetTestHistoryQuery } from '@/store/api/userApi';
-import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { getTheme } from '@/theme';
-import { useTheme } from '@/contexts/ThemeContext';
-import { LoadingState, ErrorState } from '@/components/shared';
-import { SubscriptionRequiredModal } from '@/components/modals/SubscriptionRequiredModal';
 import logger from '@/utils/logger';
-import RenderHTML from 'react-native-render-html';
 
 const categoryLogger = logger.createLogger('CategoryDetail');
 
@@ -294,20 +293,20 @@ export default function CategoryDetailScreen() {
 
   const renderBreadcrumb = () => (
     <View style={styles.breadcrumbContainer}>
-      <View style={styles.breadcrumbHeader}>
+      {/* <View style={styles.breadcrumbHeader}>
         <Text style={styles.breadcrumbTitle}>
           Navigation Path (Level {breadcrumb.length - 1} of 6+)
         </Text>
         <Text style={styles.breadcrumbDepth}>
           📍 Current: Level {breadcrumb.length - 1}
         </Text>
-      </View>
+      </View> */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.breadcrumbScroll}>
         {breadcrumb.map((item, index) => (
           <View key={item.uuid} style={styles.breadcrumbItem}>
-            <View style={styles.breadcrumbLevel}>
+            {/* <View style={styles.breadcrumbLevel}>
               <Text style={styles.breadcrumbLevelText}>L{index}</Text>
-            </View>
+            </View> */}
             <Text style={styles.breadcrumbText}>
               {item.name}
             </Text>
@@ -331,14 +330,14 @@ export default function CategoryDetailScreen() {
 
       return (
         <View style={styles.contentContainer}>
-          <View style={styles.sectionHeader}>
+          {/* <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
               Subcategories (Level {category.hierarchy_level + 1})
             </Text>
             <Text style={styles.sectionSubtitle}>
               Navigate deeper to find questions - this hierarchy has {statistics?.total_questions_recursive || 0} questions at deeper levels
             </Text>
-          </View>
+          </View> */}
           {visibleContent.map((subcategory: any) => {
             const isAccessible = isSubcategoryAccessible(subcategory);
             const isQuestionHolder = subcategory.node_type === 'question_holder';
@@ -405,9 +404,9 @@ export default function CategoryDetailScreen() {
                         <Text style={styles.completedBadgeText}>COMPLETED</Text>
                       </View>
                     )}
-                    <View style={styles.levelBadge}>
+                    {/* <View style={styles.levelBadge}>
                       <Text style={styles.levelBadgeText}>Level {subcategory.hierarchy_level}</Text>
-                    </View>
+                    </View> */}
                   </View>
 
                   {/* Stats Row */}
@@ -423,7 +422,7 @@ export default function CategoryDetailScreen() {
                       {subcategory.has_subcategories && (
                         <View style={styles.statItem}>
                           <Text style={styles.statValue}>{subcategory.subcategories_count}</Text>
-                          <Text style={styles.statLabel}>Sub-levels</Text>
+                          <Text style={styles.statLabel}>Sub-Tests</Text>
                         </View>
                       )}
                     </View>
@@ -596,7 +595,7 @@ export default function CategoryDetailScreen() {
         {/* Category Description */}
         {(category.description || category.description_gujarati) && (
           <View style={styles.descriptionContainer}>
-            <RenderHTML
+            <DisplayHtml
               source={{
                 html: language === 'gujarati'
                   ? (category.description_gujarati || category.description)

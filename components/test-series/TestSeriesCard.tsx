@@ -5,12 +5,12 @@
  * Optimized: React.memo for preventing unnecessary re-renders
  */
 
-import React, { memo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Clock, Play, Lock, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { DynamicTestSeries } from '@/store/api/dynamicHierarchyApi';
 import { ThemeColors } from '@/types';
-import RenderHTML from 'react-native-render-html';
+import { CircleCheck as CheckCircle, Clock, Lock, Play } from 'lucide-react-native';
+import React, { memo } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import DisplayHtml from '../common/DisplayHtml';
 
 /**
  * Props for TestSeriesCard component
@@ -127,10 +127,11 @@ export const TestSeriesCard = memo<TestSeriesCardProps>(({
       {/* Description */}
       {series.description && (
         <View style={styles.seriesDescription}>
-          <RenderHTML
+          <DisplayHtml
             source={{
               html: series.description || ''
             }}
+            maxHeight={80}
           />
         </View>
       )}
@@ -257,8 +258,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 12,
-    maxHeight: 80,
-    overflow: 'hidden',
   },
   statsContainer: {
     flexDirection: 'row',

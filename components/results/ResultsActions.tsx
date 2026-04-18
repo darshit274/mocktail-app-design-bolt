@@ -30,11 +30,11 @@ export const ResultsActions = memo<ResultsActionsProps>(({
         <ChevronRight size={16} color={Colors.primary} />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.actionButton} onPress={onViewLeaderboard}>
+      {/* <TouchableOpacity style={styles.actionButton} onPress={onViewLeaderboard}>
         <Trophy size={20} color={Colors.primary} />
         <Text style={styles.actionButtonText}>{t.results.viewScoreboard}</Text>
         <ChevronRight size={16} color={Colors.primary} />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       <TouchableOpacity style={styles.retakeButton} onPress={onRetakeTest}>
         <LinearGradient

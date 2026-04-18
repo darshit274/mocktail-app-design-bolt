@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform, ScrollView } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { API_CONFIG } from '@/config/constants';
 import * as ScreenCapture from 'expo-screen-capture';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AUTH_CONFIG, API_CONFIG } from '@/config/constants';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 interface SecureBase64PDFViewerProps {
   pdfId: string;
