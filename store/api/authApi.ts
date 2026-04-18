@@ -13,6 +13,7 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+  device_id?: string;
 }
 
 export interface OTPVerifyRequest {

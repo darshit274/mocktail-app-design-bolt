@@ -61,6 +61,12 @@ export default function HomeScreen() {
       minute: '2-digit'
     });
   }, []);
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return t.home.goodMorning;
+    if (hour < 17) return t.home.goodAfternoon;
+    return t.home.goodEvening;
+  };
 
   // Memoize styles to prevent recalculation
   const styles = useMemo(() => getStyles(Colors), [Colors]);
@@ -72,7 +78,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             {userProfile?.avatarUrl ? (
-              <Image 
+              <Image
                 source={{ uri: userProfile.avatarUrl }}
                 style={styles.avatar}
               />
@@ -82,7 +88,7 @@ export default function HomeScreen() {
               </View>
             )}
             <View>
-              <Text style={styles.greeting}>{t.home.goodMorning}</Text>
+              <Text style={styles.greeting}>{getGreeting()}</Text>
               <Text style={styles.userName}>
                 {userProfile?.fullName || userProfile?.username || 'Student'}
               </Text>

@@ -11,6 +11,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { validateLoginForm } from '@/utils/validation';
 import { handleApiError } from '@/utils/errorHandler';
+import { getDeviceId } from '@/utils/deviceId';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -36,9 +37,12 @@ export default function LoginScreen() {
     }
 
     try {
+      const deviceId = await getDeviceId();
+
       const result = await login({
         email: email.trim().toLowerCase(),
         password,
+        device_id: deviceId,
       }).unwrap();
 
       dispatch(setCredentials({ token: result.token }));
@@ -53,8 +57,18 @@ export default function LoginScreen() {
     } catch (error: any) {
       const errorMessage = error?.data?.message || t.auth.loginFailed;
       
+      // Check if error is due to device lock
+      if (errorMessage.includes('linked to another device') || errorMessage.includes('contact admin')) {
+        Toast.show({
+          type: 'error',
+          text1: 'Device Restricted',
+          text2: 'This account is locked to another device. Contact admin to reset.',
+        });
+        return;
+      }
+
       // Check if error is due to unverified email
-      if (errorMessage.includes('Please verify your email before logging in') || 
+      if (errorMessage.includes('Please verify your email before logging in') ||
           errorMessage.includes('verify your email') ||
           error?.status === 403) {
         
