@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, BookOpen, Shield, Lock, ShoppingCart } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -17,14 +17,6 @@ import { formatFileSize } from '@/utils/fileUtils';
 import logger from '@/utils/logger';
 
 const pdfLogger = logger.createLogger('PDFViewer');
-
-// Conditional import for expo-screen-capture
-let ScreenCapture: any = null;
-try {
-  ScreenCapture = require('expo-screen-capture');
-} catch (error) {
-  pdfLogger.warn('expo-screen-capture not available', error);
-}
 
 export default function PDFViewerScreen() {
   const { pdfId } = useLocalSearchParams<{ pdfId: string }>();
@@ -56,37 +48,8 @@ export default function PDFViewerScreen() {
   const hasAccess = !isPremium || accessData?.data?.hasAccess || false;
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [isSecure, setIsSecure] = useState(true);
-
-  useEffect(() => {
-    // Enable screenshot prevention when screen is mounted
-    const activateScreenshotPrevention = async () => {
-      if (Platform.OS !== 'web' && ScreenCapture) {
-        try {
-          await ScreenCapture.preventScreenCaptureAsync();
-          setIsSecure(true);
-          pdfLogger.info('Screenshot prevention activated');
-        } catch (error) {
-          pdfLogger.error('Failed to prevent screenshots', error);
-          setIsSecure(false);
-        }
-      } else if (!ScreenCapture) {
-        pdfLogger.warn('Screenshot prevention not available - expo-screen-capture module not loaded');
-        setIsSecure(false);
-      }
-    };
-
-    activateScreenshotPrevention();
-
-    // Cleanup: Re-enable screenshots when leaving the screen
-    return () => {
-      if (Platform.OS !== 'web' && ScreenCapture) {
-        ScreenCapture.allowScreenCaptureAsync().catch((error) =>
-          pdfLogger.error('Failed to re-enable screenshots', error)
-        );
-      }
-    };
-  }, []);
+  // Screenshot prevention is handled globally by the root layout
+  const isSecure = true;
 
   const handlePurchase = () => {
     if (!pdf) return;

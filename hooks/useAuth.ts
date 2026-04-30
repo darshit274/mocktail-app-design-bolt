@@ -8,8 +8,9 @@ import { jwtDecode } from 'jwt-decode';
 import { AUTH_CONFIG, API_CONFIG } from '@/config/constants';
 
 interface JWTPayload {
-  id: string;
+  uuid: string;   // matches backend JWT payload field name
   email: string;
+  sessionId?: string;
   exp: number;
 }
 
@@ -43,10 +44,10 @@ export const useAuth = () => {
             console.log('✅ Token is valid, initializing auth state');
             
             // First initialize with token data to set up Redux state
-            dispatch(initializeAuth({ 
+            dispatch(initializeAuth({
               token,
               user: {
-                uuid: decoded.id,
+                uuid: decoded.uuid,
                 email: decoded.email,
                 username: '', // Will be updated when profile loads
                 isEmailVerified: undefined // Will be updated when profile loads

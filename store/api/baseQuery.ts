@@ -34,29 +34,42 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+// These message substrings mean the token itself is invalid/expired — safe to force logout
+const FORCE_LOGOUT_MESSAGES = [
+  'session was ended',
+  'logged in from another device',
+  'token has expired',
+  'invalid token',
+  'please login again',
+  'token not found',
+  'no authorization header',
+];
+
 export const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
-  
-  // Check if the response is 401 Unauthorized
+
   if (result.error && result.error.status === 401) {
-    console.log('401 Unauthorized detected, logging out user...');
-    
-    // Clear token from AsyncStorage
-    await AsyncStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-    
-    // Dispatch logout action
-    api.dispatch(logout());
-    
-    // Navigate to login screen
-    // Using setTimeout to ensure state updates are processed
-    setTimeout(() => {
-      router.replace('/(auth)/login');
-    }, 100);
+    const errorData = result.error.data as any;
+    const message: string = (errorData?.message || '').toLowerCase();
+
+    const isHardAuthFailure = FORCE_LOGOUT_MESSAGES.some(phrase => message.includes(phrase));
+
+    if (isHardAuthFailure) {
+      console.log('Hard auth failure, logging out:', message);
+      await AsyncStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+      api.dispatch(logout());
+      setTimeout(() => {
+        router.replace('/(auth)/login');
+      }, 100);
+    } else {
+      // Soft 401 (e.g. permission denied on a specific resource) — don't wipe the session
+      console.warn('401 received but not forcing logout:', message);
+    }
   }
-  
+
   return result;
 };

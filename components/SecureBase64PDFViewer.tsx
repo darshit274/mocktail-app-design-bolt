@@ -1,7 +1,6 @@
 import { API_CONFIG } from '@/config/constants';
-import * as ScreenCapture from 'expo-screen-capture';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 interface SecureBase64PDFViewerProps {
@@ -22,28 +21,8 @@ const SecureBase64PDFViewer: React.FC<SecureBase64PDFViewerProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Prevent screenshots
-    const preventScreenshots = async () => {
-      if (Platform.OS !== 'web') {
-        try {
-          await ScreenCapture.preventScreenCaptureAsync();
-          console.log('Screenshot prevention enabled');
-        } catch (error) {
-          console.error('Failed to prevent screenshots:', error);
-        }
-      }
-    };
-
-    preventScreenshots();
-
-    // Fetch PDF as base64
+    // Screenshot prevention is handled globally by the root layout
     fetchPDFData();
-
-    return () => {
-      if (Platform.OS !== 'web') {
-        ScreenCapture.allowScreenCaptureAsync().catch(console.error);
-      }
-    };
   }, [pdfId]);
 
   const fetchPDFData = async () => {

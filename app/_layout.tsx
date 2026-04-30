@@ -13,12 +13,21 @@ import TestNotificationIntegration from '@/services/TestNotificationIntegration'
 import { APP_CONFIG } from '@/config/constants';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import logger from '@/utils/logger';
+import * as ScreenCapture from 'expo-screen-capture';
 
 const appLogger = logger.createLogger('App');
 
 function AppContent() {
   useFrameworkReady();
   const { isDarkMode } = useTheme();
+
+  // Prevent screenshots and screen recording on all screens
+  useEffect(() => {
+    ScreenCapture.preventScreenCaptureAsync();
+    return () => {
+      ScreenCapture.allowScreenCaptureAsync();
+    };
+  }, []);
 
   useEffect(() => {
     const initializeApp = async () => {
