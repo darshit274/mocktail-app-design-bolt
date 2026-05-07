@@ -8,6 +8,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   phone?: string;
+  device_id?: string;
 }
 
 export interface LoginRequest {

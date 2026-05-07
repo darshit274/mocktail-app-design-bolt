@@ -8,6 +8,7 @@ import { AuthLayout, FormInput, GradientButton, LinkText } from '@/components/sh
 import { useLanguage } from '@/contexts/LanguageContext';
 import { validateSignupForm } from '@/utils/validation';
 import { handleApiError } from '@/utils/errorHandler';
+import { getDeviceId } from '@/utils/deviceId';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
@@ -33,18 +34,27 @@ export default function SignupScreen() {
     }
 
     try {
+      // Lock the account to this device from the moment of signup. The backend
+      // saves the device_id; any future login from a different device is rejected
+      // until an admin clears the lock via /admin/users/:id/reset-device.
+      const deviceId = await getDeviceId();
+
       const result = await register({
         username: name.trim(),
         email: email.trim().toLowerCase(),
         password,
         phone: phone.trim() || undefined,
+        device_id: deviceId,
       }).unwrap();
 
       dispatch(setCredentials({ token: result.token }));
-      dispatch(setPendingVerification({ 
-        email: email.trim().toLowerCase(), 
+      // Save the password in pendingVerification so the OTP screen can auto-login
+      // the user once they verify, instead of bouncing them back to the login screen.
+      dispatch(setPendingVerification({
+        email: email.trim().toLowerCase(),
         isOTPSent: true,
-        type: 'registration'
+        type: 'registration',
+        password,
       }));
 
       Toast.show({

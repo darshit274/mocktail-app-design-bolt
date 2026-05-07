@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState, store } from '@/store/store';
 import { useAuth } from '@/hooks/useAuth';
+import { setPendingVerification } from '@/store/slices/authSlice';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LoadingState } from '@/components/shared';
@@ -14,6 +15,7 @@ const indexLogger = logger.createLogger('Index');
 
 export default function Index() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const { theme } = useTheme();
   const Colors = getTheme(theme);
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
@@ -51,6 +53,16 @@ export default function Index() {
           router.replace('/(auth)/login');
         } else if (currentState.user?.isEmailVerified === false) {
           indexLogger.info('Email not verified, navigating to OTP verification');
+          // Restore pendingVerification so the OTP screen knows which email to verify
+          // when the user reopens the app after killing it mid-signup. The password
+          // isn't available in this case — the OTP screen will fall back to login.
+          if (currentState.user?.email && !currentState.pendingVerification?.email) {
+            dispatch(setPendingVerification({
+              email: currentState.user.email,
+              isOTPSent: true,
+              type: 'registration',
+            }));
+          }
           setHasNavigated(true);
           router.replace('/(auth)/otp-verify');
         } else {
