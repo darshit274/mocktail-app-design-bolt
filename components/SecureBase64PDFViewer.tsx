@@ -88,7 +88,8 @@ const SecureBase64PDFViewer: React.FC<SecureBase64PDFViewerProps> = ({
       <!DOCTYPE html>
       <html>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <!-- Allow pinch-to-zoom (initial=1, max=5x) so readers can blow up small text -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes">
         <title>Secure PDF Viewer</title>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
         <style>
@@ -209,11 +210,16 @@ const SecureBase64PDFViewer: React.FC<SecureBase64PDFViewerProps> = ({
               const container = document.getElementById('pdfContainer');
               container.innerHTML = ''; // Clear loading message
               
-              // Render all pages
+              // Render all pages.
+              // Use a higher device-pixel-ratio aware scale so the canvas stays sharp
+              // when the user pinch-zooms past 100%. We multiply by DPR (capped at 2.5
+              // to keep memory use in check on low-end devices) and let CSS scale the
+              // canvas back down for the base view via max-width:100%.
+              const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+              const renderScale = 2.0 * dpr;
               for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                 const page = await pdf.getPage(pageNum);
-                const scale = 1.5;
-                const viewport = page.getViewport({ scale });
+                const viewport = page.getViewport({ scale: renderScale });
                 
                 // Create page container
                 const pageDiv = document.createElement('div');
@@ -314,6 +320,11 @@ const SecureBase64PDFViewer: React.FC<SecureBase64PDFViewerProps> = ({
         // Disable cache to prevent local storage
         cacheEnabled={false}
         incognito={true}
+        // Enable pinch-to-zoom — the viewport meta tag inside the HTML allows
+        // it, and these props make Android/iOS WebView honour it consistently.
+        scalesPageToFit
+        setBuiltInZoomControls
+        setDisplayZoomControls={false}
       />
     </View>
   );

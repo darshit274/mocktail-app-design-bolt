@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { FileText, Calendar, Eye, ShoppingCart, Lock } from 'lucide-react-native';
+import { FileText, Eye, ShoppingCart, Lock } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useCheckPDFAccessQuery } from '@/store/api/pdfPaymentApi';
 import { getTheme } from '@/theme';
@@ -21,10 +21,9 @@ interface PDFCardProps {
     tags?: string[];
   };
   onPreview: (pdfId: string) => void;
-  formatDate: (dateString: string) => string;
 }
 
-export default function PDFCard({ pdf, onPreview, formatDate }: PDFCardProps) {
+export default function PDFCard({ pdf, onPreview }: PDFCardProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const Colors = getTheme(theme);
@@ -152,13 +151,7 @@ export default function PDFCard({ pdf, onPreview, formatDate }: PDFCardProps) {
         </View>
       )}
 
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Calendar size={14} color={Colors.textSubtle} />
-          <Text style={styles.statText}>{formatDate(pdf.created_at)}</Text>
-        </View>
-      </View>
+      {/* Upload date intentionally hidden — not useful to end users */}
 
       {/* Actions */}
       {renderActionButtons()}
@@ -264,21 +257,6 @@ const getStyles = (Colors: any) => StyleSheet.create({
     fontSize: 12,
     color: Colors.primary,
     fontWeight: '500',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  statText: {
-    fontSize: 12,
-    color: Colors.textSubtle,
-    marginLeft: 4,
   },
   actionContainer: {
     flexDirection: 'row',

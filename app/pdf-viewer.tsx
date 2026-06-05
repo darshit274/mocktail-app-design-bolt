@@ -12,7 +12,6 @@ import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
 import { LoadingState, ErrorState } from '@/components/shared';
 import { API_CONFIG } from '@/config/constants';
 import SecureBase64PDFViewer from '@/components/SecureBase64PDFViewer';
-import { formatDate } from '@/utils/dateFormatters';
 import { formatFileSize } from '@/utils/fileUtils';
 import logger from '@/utils/logger';
 
@@ -224,10 +223,7 @@ export default function PDFViewerScreen() {
             <Text style={styles.metaText}>
               {pdf.access_level === 'premium' ? 'Premium' : 'Free'}
             </Text>
-            <Text style={styles.metaSeparator}>•</Text>
-            <Text style={styles.metaText}>
-              {formatDate(pdf.created_at)}
-            </Text>
+            {/* Upload date intentionally hidden — not useful to end users */}
           </View>
           {pdf.description && (
             <Text style={styles.pdfDescription}>{pdf.description}</Text>

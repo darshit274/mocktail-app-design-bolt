@@ -113,15 +113,6 @@ export default function PDFsScreen() {
     }
   }, [incrementPDFView]);
 
-  const formatDate = useCallback((dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  }, []);
-
   const handleSearch = useCallback((text: string) => {
     setSearchQuery(text);
     setCurrentPage(1); // Reset to first page when searching
@@ -226,7 +217,6 @@ export default function PDFsScreen() {
               key={pdf.id}
               pdf={pdf}
               onPreview={handlePreview}
-              formatDate={formatDate}
             />
           ))
         ) : (
