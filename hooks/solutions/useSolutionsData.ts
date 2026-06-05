@@ -93,8 +93,21 @@ export const useSolutionsData = (selectedLanguage?: 'english' | 'gujarati'): Use
         ? (sol.explanationGujarati || sol.explanation || 'No explanation available.')
         : (sol.explanation || sol.explanationGujarati || 'No explanation available.');
 
+      // Backend returns options.{A,B,C,D} pre-resolved to one language (English by
+      // default since we don't pass `language` to /test-history/:id/solutions),
+      // plus raw optionsEnglish.{A,B,C,D} and optionsGujarati.{A,B,C,D}.
+      // The original code only read `sol.options` so Gujarati was being ignored.
       const getOption = (optionKey: string) => {
-        return sol.options?.[optionKey] || `Option ${optionKey}`;
+        if (useGujarati) {
+          return sol.optionsGujarati?.[optionKey]
+            || sol.options?.[optionKey]
+            || sol.optionsEnglish?.[optionKey]
+            || `Option ${optionKey}`;
+        }
+        return sol.optionsEnglish?.[optionKey]
+          || sol.options?.[optionKey]
+          || sol.optionsGujarati?.[optionKey]
+          || `Option ${optionKey}`;
       };
 
       const transformed = {
