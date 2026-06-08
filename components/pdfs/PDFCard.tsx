@@ -11,7 +11,7 @@ interface PDFCardProps {
   pdf: {
     id: string;
     title: string;
-    description: string;
+    description?: string;
     access_level: string;
     price?: number;
     currency?: string;

@@ -152,14 +152,19 @@ export default function PDFViewerScreen() {
             {pdf.description && (
               <Text style={styles.pdfDescription}>{pdf.description}</Text>
             )}
-            {pdf.price && (
-              <View style={styles.priceContainer}>
-                <Text style={styles.priceLabel}>Price:</Text>
-                <Text style={styles.priceValue}>
-                  {pdf.currency === 'INR' ? '₹' : '$'}{pdf.price.toFixed(2)}
-                </Text>
-              </View>
-            )}
+            {(() => {
+              // Sequelize serialises DECIMAL columns as strings ("656.00"), so coerce
+              // before any number formatting. Only render the row for non-zero prices.
+              const priceNum = Number(pdf.price);
+              if (!Number.isFinite(priceNum) || priceNum <= 0) return null;
+              const symbol = pdf.currency === 'INR' ? '₹' : '$';
+              return (
+                <View style={styles.priceContainer}>
+                  <Text style={styles.priceLabel}>Price:</Text>
+                  <Text style={styles.priceValue}>{symbol}{priceNum.toFixed(2)}</Text>
+                </View>
+              );
+            })()}
           </View>
 
           {/* Action Buttons */}

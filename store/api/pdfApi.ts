@@ -34,6 +34,16 @@ export interface PDF {
   created_at: string;
   updated_at: string;
   category?: PDFCategory;
+  // Pricing — note that price/discount_percentage arrive as STRINGS from the
+  // backend (Sequelize DECIMAL → JSON string). Always coerce with Number()
+  // before calling .toFixed() or doing arithmetic.
+  price?: string | number;
+  currency?: string;
+  is_free?: boolean;
+  discount_percentage?: string | number;
+  subscription_required?: boolean;
+  preview_pages?: number;
+  display_order?: number;
 }
 
 export interface PDFListResponse {
@@ -64,6 +74,46 @@ export interface PDFDownloadResponse {
 export interface PDFCategoriesResponse {
   success: boolean;
   data: PDFCategory[];
+}
+
+// ===== Hierarchy types (categories with sub-categories tree) =====
+export interface PDFHierarchyCategory {
+  id: number;
+  uuid: string;
+  name: string;
+  name_gujarati?: string | null;
+  description?: string | null;
+  description_gujarati?: string | null;
+  icon?: string | null;
+  color?: string | null;
+  node_type: 'unset' | 'container' | 'pdf_holder';
+  hierarchy_level: number;
+  display_order: number;
+  subcategories_count?: number;
+  pdfs_count?: number;
+}
+
+export interface PDFHierarchyRootsResponse {
+  success: boolean;
+  data: PDFHierarchyCategory[];
+}
+
+export interface PDFHierarchyCategoryContentResponse {
+  success: boolean;
+  data: {
+    category: PDFHierarchyCategory & {
+      parent_category?: {
+        id: number;
+        uuid: string;
+        name: string;
+        name_gujarati?: string | null;
+        hierarchy_level: number;
+      } | null;
+    };
+    content_type: 'empty' | 'categories' | 'pdfs';
+    content: PDFHierarchyCategory[] | PDF[];
+    statistics: { subcategories_count: number; pdfs_count: number };
+  };
 }
 
 export interface PDFFiltersResponse {
@@ -193,6 +243,20 @@ export const pdfApi = createApi({
         { type: 'PDFStats' },
       ],
     }),
+
+    // ===== Hierarchy: root categories + drill-down =====
+    getPDFHierarchyRoots: builder.query<PDFHierarchyRootsResponse, void>({
+      query: () => ({ url: '/pdfs/hierarchy/roots', method: 'GET' }),
+      providesTags: ['PDFCategory'],
+    }),
+
+    getPDFHierarchyCategory: builder.query<PDFHierarchyCategoryContentResponse, string>({
+      query: (categoryUuid) => ({
+        url: `/pdfs/hierarchy/categories/${categoryUuid}`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, categoryUuid) => [{ type: 'PDFCategory', id: categoryUuid }],
+    }),
   }),
 });
 
@@ -206,4 +270,6 @@ export const {
   useGetPDFFiltersQuery,
   useGetPDFStatsQuery,
   useIncrementPDFViewMutation,
+  useGetPDFHierarchyRootsQuery,
+  useGetPDFHierarchyCategoryQuery,
 } = pdfApi;
