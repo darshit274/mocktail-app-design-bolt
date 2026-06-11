@@ -21,17 +21,56 @@ export interface PDFAccessResponse {
 }
 
 export interface CreateOrderRequest {
-  pdfId: string;
-  planType: 'pdf_purchase';
+  pdfId?: string;
+  pdfCategoryId?: string;
+  planType: 'pdf_purchase' | 'pdf_category';
+}
+
+export interface PDFCategoryAccessResponse {
+  success: boolean;
+  data: {
+    hasAccess: boolean;
+    accessType: 'free' | 'purchased' | 'restricted' | 'none';
+    canPurchase: boolean;
+    showEnrollButton: boolean;
+    subscription?: {
+      id: string;
+      purchaseDate: string;
+      expiryDate: string | null;
+      amountPaid: number;
+    };
+    category: {
+      id: number;
+      uuid: string;
+      name: string;
+      pricing_type: 'free' | 'paid' | 'restricted';
+      price: number;
+      discount_percentage: number;
+      discounted_price: number;
+    };
+  };
 }
 
 export interface CreateOrderResponse {
   success: boolean;
+  message?: string;
   data: {
     orderId: string;
     amount: number;
     currency: string;
-    subscription_id: string;
+    receiptId: string;
+    keyId: string;
+    itemDetails: {
+      name: string;
+      type: string;
+      price: number;
+    };
+    subscriptionId: string;
+    userDetails?: {
+      name: string;
+      email: string;
+      contact: string;
+    };
   };
 }
 
@@ -81,6 +120,15 @@ export const pdfPaymentApi = createApi({
     checkPDFAccess: builder.query<PDFAccessResponse, { pdfId: string }>({
       query: ({ pdfId }) => ({
         url: `/subscription-access/pdf/${pdfId}`,
+        method: 'GET',
+      }),
+      providesTags: ['PDFAccess'],
+    }),
+
+    // Check PDF Category Access (whole-category purchase flow)
+    checkPDFCategoryAccess: builder.query<PDFCategoryAccessResponse, { categoryUuid: string }>({
+      query: ({ categoryUuid }) => ({
+        url: `/subscription-access/pdf-category/${categoryUuid}`,
         method: 'GET',
       }),
       providesTags: ['PDFAccess'],
@@ -141,6 +189,7 @@ export const pdfPaymentApi = createApi({
 // Export hooks
 export const {
   useCheckPDFAccessQuery,
+  useCheckPDFCategoryAccessQuery,
   useCreatePDFPaymentOrderMutation,
   useVerifyPDFPaymentMutation,
   useCheckPaymentStatusQuery,

@@ -91,6 +91,13 @@ export interface PDFHierarchyCategory {
   display_order: number;
   subcategories_count?: number;
   pdfs_count?: number;
+  // Category-level pricing (set on root; the backend returns the EFFECTIVE
+  // values resolved from the root for nested categories). DECIMALs arrive as
+  // strings — coerce with Number() before arithmetic.
+  pricing_type?: 'free' | 'paid' | 'restricted';
+  price?: string | number;
+  discount_percentage?: string | number;
+  is_free?: boolean;
 }
 
 export interface PDFHierarchyRootsResponse {

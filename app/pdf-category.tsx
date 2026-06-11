@@ -5,10 +5,10 @@
  *   - pdf_holder category → renders PDF cards
  *   - empty → empty state
  */
-import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Folder, AlertCircle, BookOpen } from 'lucide-react-native';
+import { ArrowLeft, Folder, AlertCircle, BookOpen, Lock, ShoppingCart } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -17,6 +17,7 @@ import {
   PDFHierarchyCategory,
   PDF,
 } from '@/store/api/pdfApi';
+import { useCheckPDFCategoryAccessQuery } from '@/store/api/pdfPaymentApi';
 import { CategorySkeleton, PDFListSkeleton } from '@/components/shared/SkeletonLoader';
 import PDFCard from '@/components/pdfs/PDFCard';
 import { API_CONFIG } from '@/config/constants';
@@ -37,11 +38,58 @@ export default function PdfCategoryScreen() {
     { skip: !categoryUuid },
   );
 
+  const data = response?.data;
+  const contentType = data?.content_type;
+  const headerTitle = data?.category?.name || categoryName || 'PDFs';
+
+  // Category-level pricing: the backend returns the EFFECTIVE pricing for this
+  // branch (resolved from the root category). One purchase unlocks the tree.
+  const isPaidCategory = data?.category?.pricing_type === 'paid';
+  const {
+    data: accessData,
+    refetch: refetchAccess,
+  } = useCheckPDFCategoryAccessQuery(
+    { categoryUuid: categoryUuid as string },
+    { skip: !categoryUuid || !isPaidCategory },
+  );
+  const hasAccess = !isPaidCategory || accessData?.data?.hasAccess === true;
+  const accessCategory = accessData?.data?.category;
+
+  const discountedPrice = useMemo(() => {
+    if (accessCategory) return accessCategory.discounted_price;
+    const base = Number(data?.category?.price || 0);
+    const discount = Number(data?.category?.discount_percentage || 0);
+    return discount > 0 ? base * (1 - discount / 100) : base;
+  }, [accessCategory, data?.category?.price, data?.category?.discount_percentage]);
+
+  const categoryPurchaseParams = useMemo(() => ({
+    categoryUuid: (accessCategory?.uuid || categoryUuid) as string,
+    name: accessCategory?.name || headerTitle,
+    price: discountedPrice,
+    description: data?.category?.description || undefined,
+  }), [accessCategory, categoryUuid, headerTitle, discountedPrice, data?.category?.description]);
+
+  const goToCategoryCheckout = useCallback(() => {
+    router.push({
+      pathname: '/pdf-payment',
+      params: {
+        categoryUuid: categoryPurchaseParams.categoryUuid,
+        title: categoryPurchaseParams.name,
+        price: categoryPurchaseParams.price.toString(),
+        currency: 'INR',
+        description: categoryPurchaseParams.description || '',
+      },
+    });
+  }, [categoryPurchaseParams]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try { await refetch(); } catch (_) { /* ignore */ }
+    try {
+      await refetch();
+      if (isPaidCategory) await refetchAccess();
+    } catch (_) { /* ignore */ }
     finally { setRefreshing(false); }
-  }, [refetch]);
+  }, [refetch, refetchAccess, isPaidCategory]);
 
   const handleOpenSubCategory = useCallback((cat: PDFHierarchyCategory) => {
     router.push({
@@ -51,13 +99,20 @@ export default function PdfCategoryScreen() {
   }, []);
 
   const handleOpenPdf = useCallback((pdfId: string) => {
+    if (isPaidCategory && !hasAccess) {
+      Alert.alert(
+        'Purchase Required',
+        'Buy this category once to unlock all PDFs inside it.',
+        [
+          { text: 'Buy Now', onPress: goToCategoryCheckout },
+          { text: 'Cancel', style: 'cancel' },
+        ],
+      );
+      return;
+    }
     const pdfViewerUrl = `${API_CONFIG.BASE_URL}/api/pdfs/${pdfId}/secure-view`;
     router.push(`/pdf-viewer?pdfId=${pdfId}&url=${encodeURIComponent(pdfViewerUrl)}`);
-  }, []);
-
-  const data = response?.data;
-  const contentType = data?.content_type;
-  const headerTitle = data?.category?.name || categoryName || 'PDFs';
+  }, [isPaidCategory, hasAccess, goToCategoryCheckout]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -82,6 +137,25 @@ export default function PdfCategoryScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />}
       >
+        {/* Paid category banner — same one-tap purchase flow as test series */}
+        {!isLoading && !isError && isPaidCategory && !hasAccess && (
+          <View style={styles.purchaseBanner}>
+            <View style={styles.purchaseBannerLeft}>
+              <Lock size={20} color={Colors.warning} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.purchaseBannerTitle}>Premium category</Text>
+                <Text style={styles.purchaseBannerSubtitle}>
+                  One purchase unlocks every PDF inside.
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.purchaseBannerButton} onPress={goToCategoryCheckout}>
+              <ShoppingCart size={16} color="#fff" />
+              <Text style={styles.purchaseBannerButtonText}>Buy ₹{Number(discountedPrice).toFixed(0)}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {isLoading ? (
           contentType === 'pdfs' ? <PDFListSkeleton count={5} /> : <CategorySkeleton />
         ) : isError ? (
@@ -112,7 +186,12 @@ export default function PdfCategoryScreen() {
           ))
         ) : (
           (data!.content as PDF[]).map((pdf) => (
-            <PDFCard key={pdf.id} pdf={pdf} onPreview={handleOpenPdf} />
+            <PDFCard
+              key={pdf.id}
+              pdf={pdf}
+              onPreview={handleOpenPdf}
+              categoryPurchase={isPaidCategory && !hasAccess ? categoryPurchaseParams : undefined}
+            />
           ))
         )}
       </ScrollView>
@@ -143,4 +222,31 @@ const getStyles = (Colors: any) => StyleSheet.create({
   stateDescription: { fontSize: 14, color: Colors.textSubtle, marginTop: 8, textAlign: 'center', lineHeight: 20 },
   retryButton: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8, backgroundColor: Colors.primary },
   retryButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+
+  // Paid category purchase banner
+  purchaseBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    padding: 14,
+    marginBottom: 16,
+    gap: 10,
+  },
+  purchaseBannerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  purchaseBannerTitle: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
+  purchaseBannerSubtitle: { fontSize: 12, color: Colors.textSubtle, marginTop: 2 },
+  purchaseBannerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  purchaseBannerButtonText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 });

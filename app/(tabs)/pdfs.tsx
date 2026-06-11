@@ -98,6 +98,12 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onPress, C
   const isLeaf = category.node_type === 'pdf_holder';
   const subCount = category.subcategories_count || 0;
   const pdfCount = category.pdfs_count || 0;
+  // Pricing badge — only root categories carry pricing_type (the tree inherits it)
+  const isPaid = category.pricing_type === 'paid';
+  const isRestricted = category.pricing_type === 'restricted';
+  const basePrice = Number(category.price || 0);
+  const discount = Number(category.discount_percentage || 0);
+  const finalPrice = discount > 0 ? basePrice * (1 - discount / 100) : basePrice;
 
   return (
     <View style={styles.categoryCard}>
@@ -110,6 +116,16 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onPress, C
             <Text style={[styles.categoryName, { color: Colors.textPrimary, flex: 1 }]} numberOfLines={1}>
               {category.name}
             </Text>
+            {isPaid && (
+              <View style={[styles.badge, { backgroundColor: Colors.warning }]}>
+                <Text style={styles.badgeText}>₹{finalPrice.toFixed(0)}</Text>
+              </View>
+            )}
+            {isRestricted && (
+              <View style={[styles.badge, { backgroundColor: Colors.danger }]}>
+                <Text style={styles.badgeText}>Restricted</Text>
+              </View>
+            )}
             {isLeaf && (
               <View style={[styles.badge, { backgroundColor: Colors.primary }]}>
                 <Text style={styles.badgeText}>PDFs</Text>

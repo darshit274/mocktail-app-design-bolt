@@ -21,9 +21,20 @@ interface PDFCardProps {
     tags?: string[];
   };
   onPreview: (pdfId: string) => void;
+  /**
+   * When the PDF lives in a paid category, purchases happen at CATEGORY level
+   * (one payment unlocks the whole category) — the Buy button then routes to
+   * the category checkout instead of a per-PDF one.
+   */
+  categoryPurchase?: {
+    categoryUuid: string;
+    name: string;
+    price: number;
+    description?: string;
+  };
 }
 
-export default function PDFCard({ pdf, onPreview }: PDFCardProps) {
+export default function PDFCard({ pdf, onPreview, categoryPurchase }: PDFCardProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const Colors = getTheme(theme);
@@ -43,6 +54,7 @@ export default function PDFCard({ pdf, onPreview }: PDFCardProps) {
   const canPurchase = isPremium && !hasAccess && accessData?.data?.canPurchase !== false;
 
   const formatPrice = () => {
+    if (categoryPurchase) return `₹${categoryPurchase.price.toFixed(2)}`;
     if (!pdf.price) return '';
     const currency = pdf.currency === 'INR' ? '₹' : '$';
     // Convert to number in case price is a string
@@ -51,6 +63,19 @@ export default function PDFCard({ pdf, onPreview }: PDFCardProps) {
   };
 
   const handlePurchase = () => {
+    if (categoryPurchase) {
+      router.push({
+        pathname: '/pdf-payment',
+        params: {
+          categoryUuid: categoryPurchase.categoryUuid,
+          title: categoryPurchase.name,
+          price: categoryPurchase.price.toString(),
+          currency: 'INR',
+          description: categoryPurchase.description,
+        },
+      });
+      return;
+    }
     router.push({
       pathname: '/pdf-payment',
       params: {

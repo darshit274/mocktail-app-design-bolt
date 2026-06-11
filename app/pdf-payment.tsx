@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, FileText, IndianRupee, ShieldCheck, CreditCard } from 'lucide-react-native';
+import { ArrowLeft, FileText, Folder, IndianRupee, ShieldCheck, CreditCard } from 'lucide-react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { getTheme } from '@/theme';
@@ -11,14 +11,18 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import {
   useCreatePDFPaymentOrderMutation,
   useVerifyPDFPaymentMutation,
-  useCheckPDFAccessQuery
+  useCheckPDFAccessQuery,
+  useCheckPDFCategoryAccessQuery,
 } from '@/store/api/pdfPaymentApi';
 import { WebView } from 'react-native-webview';
 import { API_CONFIG } from '@/config/constants';
 
 export default function PDFPaymentScreen() {
   const params = useLocalSearchParams();
-  const { pdfId, title, price, currency, description } = params;
+  const { pdfId, categoryUuid, title, price, currency, description } = params;
+  // Two purchase modes share this screen: a single PDF (pdfId) or a whole
+  // PDF category (categoryUuid) — the category flow mirrors test series.
+  const isCategoryPurchase = !!categoryUuid && !pdfId;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'details' | 'processing' | 'success' | 'failed'>('details');
@@ -37,23 +41,40 @@ export default function PDFPaymentScreen() {
   const [createOrder, { isLoading: creatingOrder }] = useCreatePDFPaymentOrderMutation();
   const [verifyPayment, { isLoading: verifyingPayment }] = useVerifyPDFPaymentMutation();
 
-  // Check if user already has access
+  // Check if user already has access (one of the two depending on mode)
   const {
-    data: accessData,
-    isLoading: checkingAccess,
-    refetch: recheckAccess
+    data: pdfAccessData,
+    isLoading: checkingPdfAccess,
+    refetch: recheckPdfAccess
   } = useCheckPDFAccessQuery({ pdfId: pdfId as string }, { skip: !pdfId });
+
+  const {
+    data: categoryAccessData,
+    isLoading: checkingCategoryAccess,
+    refetch: recheckCategoryAccess
+  } = useCheckPDFCategoryAccessQuery(
+    { categoryUuid: categoryUuid as string },
+    { skip: !isCategoryPurchase },
+  );
+
+  const accessData = isCategoryPurchase ? categoryAccessData : pdfAccessData;
+  const checkingAccess = isCategoryPurchase ? checkingCategoryAccess : checkingPdfAccess;
+  const recheckAccess = isCategoryPurchase ? recheckCategoryAccess : recheckPdfAccess;
 
   // Redirect if user already has access
   useEffect(() => {
     if (accessData?.success && accessData.data.hasAccess) {
       Alert.alert(
         'Already Purchased',
-        'You already have access to this PDF.',
+        isCategoryPurchase
+          ? 'You already have access to this PDF category.'
+          : 'You already have access to this PDF.',
         [
           {
-            text: 'View PDF',
-            onPress: () => router.replace(`/pdf-viewer?pdfId=${pdfId}`)
+            text: isCategoryPurchase ? 'Open Category' : 'View PDF',
+            onPress: () => isCategoryPurchase
+              ? router.replace(`/pdf-category?categoryUuid=${categoryUuid}`)
+              : router.replace(`/pdf-viewer?pdfId=${pdfId}`)
           },
           {
             text: 'Go Back',
@@ -62,7 +83,7 @@ export default function PDFPaymentScreen() {
         ]
       );
     }
-  }, [accessData, pdfId]);
+  }, [accessData, pdfId, categoryUuid, isCategoryPurchase]);
 
   const formatPrice = (amount: string | string[], curr: string | string[]) => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : parseFloat(amount[0] || '0');
@@ -118,9 +139,13 @@ export default function PDFPaymentScreen() {
       // Recheck access to update UI
       await recheckAccess();
 
-      // Navigate to PDF after 2 seconds
+      // Navigate to the unlocked content after 2 seconds
       setTimeout(() => {
-        router.replace(`/pdf-viewer?pdfId=${pdfId}`);
+        if (isCategoryPurchase) {
+          router.replace(`/pdf-category?categoryUuid=${categoryUuid}`);
+        } else {
+          router.replace(`/pdf-viewer?pdfId=${pdfId}`);
+        }
       }, 2000);
 
     } catch (verificationError: any) {
@@ -143,8 +168,8 @@ export default function PDFPaymentScreen() {
       return;
     }
 
-    if (!pdfId) {
-      Alert.alert('Error', 'PDF not found');
+    if (!pdfId && !categoryUuid) {
+      Alert.alert('Error', isCategoryPurchase ? 'Category not found' : 'PDF not found');
       return;
     }
 
@@ -154,11 +179,12 @@ export default function PDFPaymentScreen() {
 
       console.log('🔄 Creating PDF payment order...');
 
-      // Step 1: Create payment order
-      const orderResponse = await createOrder({
-        pdfId: pdfId as string,
-        planType: 'pdf_purchase'
-      }).unwrap();
+      // Step 1: Create payment order (single PDF or whole category)
+      const orderResponse = await createOrder(
+        isCategoryPurchase
+          ? { pdfCategoryId: categoryUuid as string, planType: 'pdf_category' }
+          : { pdfId: pdfId as string, planType: 'pdf_purchase' }
+      ).unwrap();
 
       if (!orderResponse.success) {
         throw new Error('Failed to create payment order');
@@ -267,10 +293,12 @@ export default function PDFPaymentScreen() {
 
   const renderPaymentDetails = () => (
     <View style={styles.content}>
-      {/* PDF Info */}
+      {/* Item Info */}
       <View style={styles.pdfCard}>
         <View style={styles.pdfIcon}>
-          <FileText size={32} color={Colors.primary} />
+          {isCategoryPurchase
+            ? <Folder size={32} color={Colors.primary} />
+            : <FileText size={32} color={Colors.primary} />}
         </View>
         <View style={styles.pdfInfo}>
           <Text style={styles.pdfTitle}>{title}</Text>
@@ -283,7 +311,7 @@ export default function PDFPaymentScreen() {
       {/* Price Details */}
       <View style={styles.priceCard}>
         <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>PDF Price</Text>
+          <Text style={styles.priceLabel}>{isCategoryPurchase ? 'Category Price' : 'PDF Price'}</Text>
           <Text style={styles.priceValue}>
             {formatPrice(price as string, currency as string)}
           </Text>
@@ -302,7 +330,11 @@ export default function PDFPaymentScreen() {
         <Text style={styles.featuresTitle}>What you get:</Text>
         <View style={styles.feature}>
           <ShieldCheck size={16} color={Colors.success} />
-          <Text style={styles.featureText}>Lifetime access to PDF</Text>
+          <Text style={styles.featureText}>
+            {isCategoryPurchase
+              ? 'Access to every PDF in this category'
+              : 'Lifetime access to PDF'}
+          </Text>
         </View>
         <View style={styles.feature}>
           <FileText size={16} color={Colors.success} />
@@ -344,7 +376,9 @@ export default function PDFPaymentScreen() {
       <ShieldCheck size={64} color={Colors.success} />
       <Text style={styles.statusTitle}>Payment Successful!</Text>
       <Text style={styles.statusDescription}>
-        You now have access to this PDF. Redirecting to PDF viewer...
+        {isCategoryPurchase
+          ? 'You now have access to every PDF in this category. Redirecting...'
+          : 'You now have access to this PDF. Redirecting to PDF viewer...'}
       </Text>
     </View>
   );
@@ -385,7 +419,7 @@ export default function PDFPaymentScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color={Colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Purchase PDF</Text>
+        <Text style={styles.headerTitle}>{isCategoryPurchase ? 'Purchase Category' : 'Purchase PDF'}</Text>
         <View style={{ width: 24 }} />
       </View>
 
