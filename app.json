@@ -60,8 +60,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "cb383c95-d1a3-4dd7-b655-a17543571c0e"
+        "projectId": "e188ddd3-c7fb-4833-8b0e-5d190dc1d5dc"
       }
-    }
+    },
+    "owner": "mocktaleapps-organization"
   }
 }
