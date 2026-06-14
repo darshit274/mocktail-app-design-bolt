@@ -109,7 +109,7 @@ export default function PDFCard({ pdf, onPreview, categoryPurchase }: PDFCardPro
           >
             <ShoppingCart size={16} color={Colors.white} />
             <Text style={styles.buyButtonText}>
-              Buy {formatPrice()}
+              {categoryPurchase ? 'Unlock Category' : `Buy ${formatPrice()}`}
             </Text>
           </TouchableOpacity>
         </View>
@@ -154,8 +154,8 @@ export default function PDFCard({ pdf, onPreview, categoryPurchase }: PDFCardPro
         </View>
       </View>
 
-      {/* Price Display for Premium PDFs */}
-      {isPremium && !hasAccess && pdf.price && (
+      {/* Price Display for Premium PDFs — hidden when category purchase covers this PDF */}
+      {isPremium && !hasAccess && pdf.price && !categoryPurchase && (
         <View style={styles.priceContainer}>
           <Text style={styles.priceLabel}>Price:</Text>
           <Text style={styles.priceValue}>{formatPrice()}</Text>
