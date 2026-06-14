@@ -4,26 +4,49 @@
  * badges, child/PDF count, chevron right. Tapping a card drills into the
  * recursive /pdf-category screen.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Folder, FileText, AlertCircle, ChevronRight, BookOpen } from 'lucide-react-native';
+import { Folder, FileText, AlertCircle, ChevronRight, BookOpen, CheckCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGetPDFHierarchyRootsQuery, PDFHierarchyCategory } from '@/store/api/pdfApi';
+import { useGetUserSubscriptionsQuery } from '@/store/api/pdfPaymentApi';
 import { CategorySkeleton } from '@/components/shared/SkeletonLoader';
 import DisplayHtml from '@/components/common/DisplayHtml';
 
+type FilterTab = 'all' | 'free' | 'paid' | 'purchased';
+
+const FILTER_TABS: { key: FilterTab; label: string }[] = [
+  { key: 'all',       label: 'All' },
+  { key: 'free',      label: 'Free' },
+  { key: 'paid',      label: 'Paid' },
+  { key: 'purchased', label: 'Purchased' },
+];
+
 export default function PDFsScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const { theme } = useTheme();
   const { t } = useLanguage();
   const Colors = getTheme(theme);
   const styles = getStyles(Colors);
 
   const { data, isLoading, isError, error, refetch } = useGetPDFHierarchyRootsQuery();
+  const { data: subsData } = useGetUserSubscriptionsQuery();
+
+  // Build a Set of purchased PDF category UUIDs from the user's subscription metadata
+  const purchasedUuids = useMemo(() => {
+    const subs = subsData?.data || [];
+    return new Set<string>(
+      subs
+        .filter((s) => s.status === 'completed' && s.metadata?.plan_type === 'pdf_category')
+        .map((s) => s.metadata?.pdf_category_uuid as string)
+        .filter(Boolean)
+    );
+  }, [subsData]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -40,6 +63,15 @@ export default function PDFsScreen() {
 
   const categories = data?.data || [];
 
+  const filteredCategories = useMemo(() => {
+    switch (activeFilter) {
+      case 'free':      return categories.filter((c) => c.pricing_type === 'free');
+      case 'paid':      return categories.filter((c) => c.pricing_type === 'paid');
+      case 'purchased': return categories.filter((c) => purchasedUuids.has(c.uuid));
+      default:          return categories;
+    }
+  }, [categories, activeFilter, purchasedUuids]);
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -48,6 +80,22 @@ export default function PDFsScreen() {
           <Text style={styles.headerTitle}>{t.pdfs?.title || 'PDFs'}</Text>
           <Text style={styles.headerSubtitle}>Browse by category</Text>
         </View>
+      </View>
+
+      {/* Filter Tabs */}
+      <View style={styles.filterRow}>
+        {FILTER_TABS.map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.filterTab, activeFilter === tab.key && styles.filterTabActive]}
+            onPress={() => setActiveFilter(tab.key)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterTabText, activeFilter === tab.key && styles.filterTabTextActive]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <ScrollView
@@ -69,15 +117,27 @@ export default function PDFsScreen() {
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
-        ) : categories.length === 0 ? (
+        ) : filteredCategories.length === 0 ? (
           <View style={styles.stateBox}>
             <BookOpen size={48} color={Colors.textSubtle} />
-            <Text style={styles.stateTitle}>No PDF categories yet</Text>
-            <Text style={styles.stateDescription}>Check back soon — content is being prepared.</Text>
+            <Text style={styles.stateTitle}>
+              {activeFilter === 'purchased' ? 'No purchased categories' : 'No PDF categories yet'}
+            </Text>
+            <Text style={styles.stateDescription}>
+              {activeFilter === 'purchased'
+                ? 'Categories you purchase will appear here.'
+                : 'Check back soon — content is being prepared.'}
+            </Text>
           </View>
         ) : (
-          categories.map((cat) => (
-            <CategoryCard key={cat.uuid} category={cat} onPress={() => handleOpen(cat)} Colors={Colors} />
+          filteredCategories.map((cat) => (
+            <CategoryCard
+              key={cat.uuid}
+              category={cat}
+              onPress={() => handleOpen(cat)}
+              Colors={Colors}
+              isPurchased={purchasedUuids.has(cat.uuid)}
+            />
           ))
         )}
       </ScrollView>
@@ -89,11 +149,12 @@ interface CategoryCardProps {
   category: PDFHierarchyCategory;
   onPress: () => void;
   Colors: any;
+  isPurchased?: boolean;
 }
 
 // Reused on both the root tab and the recursive /pdf-category screen so the
 // look-and-feel matches the test-series series-detail screen exactly.
-export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onPress, Colors }) => {
+export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onPress, Colors, isPurchased = false }) => {
   const styles = getStyles(Colors);
   const isLeaf = category.node_type === 'pdf_holder';
   const subCount = category.subcategories_count || 0;
@@ -106,27 +167,32 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onPress, C
   const finalPrice = discount > 0 ? basePrice * (1 - discount / 100) : basePrice;
 
   return (
-    <View style={styles.categoryCard}>
+    <View style={[styles.categoryCard, isPurchased && styles.categoryCardPurchased]}>
       <TouchableOpacity style={styles.categoryHeader} onPress={onPress} activeOpacity={0.7}>
-        <View style={[styles.categoryIcon, { backgroundColor: Colors.primary }]}>
-          {isLeaf ? <FileText size={20} color={Colors.white} /> : <Folder size={20} color={Colors.white} />}
+        <View style={[styles.categoryIcon, { backgroundColor: isPurchased ? Colors.success : Colors.primary }]}>
+          {isPurchased
+            ? <CheckCircle size={20} color={Colors.white} />
+            : isLeaf ? <FileText size={20} color={Colors.white} /> : <Folder size={20} color={Colors.white} />}
         </View>
         <View style={styles.categoryInfo}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8 }}>
             <Text style={[styles.categoryName, { color: Colors.textPrimary, flex: 1 }]} numberOfLines={1}>
               {category.name}
             </Text>
-            {isPaid && (
+            {isPurchased ? (
+              <View style={[styles.badge, { backgroundColor: Colors.success }]}>
+                <Text style={styles.badgeText}>Purchased</Text>
+              </View>
+            ) : isPaid ? (
               <View style={[styles.badge, { backgroundColor: Colors.warning }]}>
                 <Text style={styles.badgeText}>₹{finalPrice.toFixed(0)}</Text>
               </View>
-            )}
-            {isRestricted && (
+            ) : isRestricted ? (
               <View style={[styles.badge, { backgroundColor: Colors.danger }]}>
                 <Text style={styles.badgeText}>Restricted</Text>
               </View>
-            )}
-            {isLeaf && (
+            ) : null}
+            {isLeaf && !isPurchased && (
               <View style={[styles.badge, { backgroundColor: Colors.primary }]}>
                 <Text style={styles.badgeText}>PDFs</Text>
               </View>
@@ -163,6 +229,35 @@ const getStyles = (Colors: any) => StyleSheet.create({
   },
   headerTitle: { fontSize: 24, fontWeight: '600', color: Colors.textPrimary },
   headerSubtitle: { fontSize: 14, color: Colors.textSubtle, marginTop: 2 },
+
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: Colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.muted,
+    gap: 8,
+  },
+  filterTab: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignItems: 'center',
+    backgroundColor: Colors.backgroundSecondary,
+  },
+  filterTabActive: {
+    backgroundColor: Colors.primary,
+  },
+  filterTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  filterTabTextActive: {
+    color: Colors.white,
+  },
+
   content: { flex: 1 },
   contentInner: { padding: 16, paddingBottom: 32 },
 
@@ -183,6 +278,10 @@ const getStyles = (Colors: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.muted,
     overflow: 'hidden',
+  },
+  categoryCardPurchased: {
+    borderColor: Colors.success,
+    borderWidth: 1.5,
   },
   categoryHeader: {
     flexDirection: 'row',
