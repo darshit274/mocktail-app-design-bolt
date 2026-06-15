@@ -244,7 +244,7 @@ const getStyles = (Colors: any) => StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     alignItems: 'center',
-    backgroundColor: Colors.backgroundSecondary,
+    backgroundColor: Colors.light,
   },
   filterTabActive: {
     backgroundColor: Colors.primary,
@@ -252,7 +252,7 @@ const getStyles = (Colors: any) => StyleSheet.create({
   filterTabText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: Colors.textSubtle,
   },
   filterTabTextActive: {
     color: Colors.white,
