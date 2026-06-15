@@ -163,18 +163,25 @@ export const pdfPaymentApi = createApi({
       providesTags: ['PaymentOrder'],
     }),
 
-    // Get User Subscriptions (EXACT WEB MATCH)
+    // Get User Subscriptions — returns { data: { subscriptions: [...], totalCount } }
     getUserSubscriptions: builder.query<{
       success: boolean;
-      data: Array<{
-        id: string;
-        type: 'pdf_purchase' | 'test_series';
-        status: string;
-        purchaseDate: string;
-        expiryDate: string | null;
-        amountPaid: number;
-        metadata?: any;
-      }>;
+      data: {
+        subscriptions: Array<{
+          id: string;
+          test_series_id: number | null;
+          purchase_date: string;
+          expiry_date: string | null;
+          amount_paid: number;
+          metadata?: {
+            plan_type?: string;
+            pdf_category_id?: number;
+            pdf_category_uuid?: string;
+            [key: string]: any;
+          } | null;
+        }>;
+        totalCount: number;
+      };
     }, void>({
       query: () => ({
         url: '/subscription-access/my-subscriptions',

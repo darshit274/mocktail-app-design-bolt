@@ -37,14 +37,14 @@ export default function PDFsScreen() {
   const { data, isLoading, isError, error, refetch } = useGetPDFHierarchyRootsQuery();
   const { data: subsData } = useGetUserSubscriptionsQuery();
 
-  // Build a Set of purchased PDF category UUIDs from the user's subscription metadata
+  // Build a Set of purchased PDF category UUIDs from the user's subscription metadata.
+  // The endpoint already filters for completed+active subs, so no status check needed here.
   const purchasedUuids = useMemo(() => {
-    const subs = subsData?.data || [];
+    const subs = subsData?.data?.subscriptions || [];
     return new Set<string>(
       subs
-        .filter((s) => s.status === 'completed' && s.metadata?.plan_type === 'pdf_category')
-        .map((s) => s.metadata?.pdf_category_uuid as string)
-        .filter(Boolean)
+        .filter((s) => s.metadata?.plan_type === 'pdf_category' && s.metadata?.pdf_category_uuid)
+        .map((s) => s.metadata!.pdf_category_uuid as string)
     );
   }, [subsData]);
 
