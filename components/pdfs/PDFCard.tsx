@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { FileText, Eye, ShoppingCart, Lock } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -39,6 +39,7 @@ export default function PDFCard({ pdf, onPreview, categoryPurchase }: PDFCardPro
   const { t } = useLanguage();
   const Colors = getTheme(theme);
   const styles = getStyles(Colors);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   // Check PDF access for premium PDFs
   const {
@@ -162,8 +163,22 @@ export default function PDFCard({ pdf, onPreview, categoryPurchase }: PDFCardPro
         </View>
       )}
 
-      {/* Description */}
-      <Text style={styles.pdfDescription}>{pdf.description}</Text>
+      {/* Description with Read more */}
+      {pdf.description ? (
+        <View style={styles.descriptionContainer}>
+          <Text
+            style={styles.pdfDescription}
+            numberOfLines={descExpanded ? undefined : 2}
+          >
+            {pdf.description}
+          </Text>
+          <TouchableOpacity onPress={() => setDescExpanded(prev => !prev)}>
+            <Text style={styles.readMoreText}>
+              {descExpanded ? 'Read less' : 'Read more'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       {/* Tags */}
       {pdf.tags && pdf.tags.length > 0 && (
@@ -259,11 +274,19 @@ const getStyles = (Colors: any) => StyleSheet.create({
     color: Colors.primary,
     marginLeft: 8,
   },
+  descriptionContainer: {
+    marginBottom: 12,
+  },
   pdfDescription: {
     fontSize: 14,
     color: Colors.textSecondary,
     lineHeight: 20,
-    marginBottom: 12,
+  },
+  readMoreText: {
+    fontSize: 13,
+    color: Colors.primary,
+    fontWeight: '500',
+    marginTop: 4,
   },
   tagsContainer: {
     flexDirection: 'row',

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, BookOpen, Shield, Lock, ShoppingCart } from 'lucide-react-native';
+import { ArrowLeft, BookOpen, Shield, Lock, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { getTheme } from '@/theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -47,6 +47,7 @@ export default function PDFViewerScreen() {
   const hasAccess = !isPremium || accessData?.data?.hasAccess || false;
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [infoExpanded, setInfoExpanded] = useState(false);
   // Screenshot prevention is handled globally by the root layout
   const isSecure = true;
 
@@ -219,21 +220,35 @@ export default function PDFViewerScreen() {
       </View>
 
       <View style={styles.content}>
-        {/* PDF Info */}
-        <View style={styles.pdfInfo}>
-          <Text style={styles.pdfTitle}>{pdf.title}</Text>
-          <View style={styles.pdfMeta}>
-            <Text style={styles.metaText}>Size: {formatFileSize(pdf.file_size)}</Text>
+        {/* PDF Info — collapsible */}
+        <TouchableOpacity
+          style={styles.pdfInfoToggle}
+          onPress={() => setInfoExpanded(prev => !prev)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.pdfInfoToggleLeft}>
+            <Text style={styles.metaText}>
+              {formatFileSize(pdf.file_size)}
+            </Text>
             <Text style={styles.metaSeparator}>•</Text>
             <Text style={styles.metaText}>
               {pdf.access_level === 'premium' ? 'Premium' : 'Free'}
             </Text>
-            {/* Upload date intentionally hidden — not useful to end users */}
           </View>
-          {pdf.description && (
-            <Text style={styles.pdfDescription}>{pdf.description}</Text>
-          )}
-        </View>
+          {infoExpanded
+            ? <ChevronUp size={16} color={Colors.textSubtle} />
+            : <ChevronDown size={16} color={Colors.textSubtle} />
+          }
+        </TouchableOpacity>
+
+        {infoExpanded && (
+          <View style={styles.pdfInfo}>
+            <Text style={styles.pdfTitle}>{pdf.title}</Text>
+            {pdf.description && (
+              <Text style={styles.pdfDescription}>{pdf.description}</Text>
+            )}
+          </View>
+        )}
 
         {/* PDF Viewer Container */}
         <View style={styles.viewerContainer}>
@@ -314,14 +329,29 @@ const getStyles = (Colors: any) => StyleSheet.create({
   content: {
     flex: 1,
   },
+  pdfInfoToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: Colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.muted,
+  },
+  pdfInfoToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   pdfInfo: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: Colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: Colors.muted,
   },
   pdfTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.textPrimary,
     marginBottom: 8,
@@ -332,11 +362,11 @@ const getStyles = (Colors: any) => StyleSheet.create({
     marginBottom: 12,
   },
   metaText: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.textSubtle,
   },
   metaSeparator: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.textSubtle,
     marginHorizontal: 8,
   },

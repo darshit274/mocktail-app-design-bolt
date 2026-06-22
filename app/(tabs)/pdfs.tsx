@@ -205,12 +205,15 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onPress, C
                 : `${subCount} ${subCount === 1 ? 'subcategory' : 'subcategories'}`}
             </Text>
           </View>
-          {category.description ? (
-            <DisplayHtml source={{ html: category.description }} />
-          ) : null}
         </View>
         <ChevronRight size={20} color={Colors.textSubtle} />
       </TouchableOpacity>
+      {/* Description outside TouchableOpacity so Read more doesn't trigger navigation */}
+      {category.description ? (
+        <View style={styles.categoryDescription}>
+          <DisplayHtml source={{ html: category.description }} maxHeight={44} />
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -297,6 +300,10 @@ const getStyles = (Colors: any) => StyleSheet.create({
   categoryName: { fontSize: 16, fontWeight: '600' },
   categoryStats: { marginTop: 2 },
   categoryStatsText: { fontSize: 12 },
+  categoryDescription: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
   badge: {
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
   },
