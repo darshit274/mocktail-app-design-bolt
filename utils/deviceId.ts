@@ -1,8 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import * as Application from 'expo-application';
+import * as SecureStore from 'expo-secure-store';
 
-const DEVICE_ID_KEY = '@mocktail_device_id';
+const ASYNC_KEY = '@mocktail_device_id';
+const KEYCHAIN_KEY = 'mocktail_device_id';
 
-/** RFC 4122 v4 UUID using Math.random — no extra packages required */
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
@@ -12,20 +15,46 @@ function generateUUID(): string {
 }
 
 /**
- * Returns a stable device ID for this app installation.
- * Generated once on first call and persisted in AsyncStorage.
- * Used to enforce single-device login from the mobile app.
+ * Returns a stable device ID that survives app uninstall/reinstall.
+ *
+ * Android: uses Application.androidId — hardware-bound, never changes.
+ * iOS: uses Keychain via expo-secure-store — Keychain persists after uninstall.
+ *   Migration: if an old UUID exists in AsyncStorage (pre-Keychain era) it is
+ *   moved to Keychain on first call, so existing users keep their ID.
+ * Web/other: falls back to AsyncStorage UUID.
  */
 export async function getDeviceId(): Promise<string> {
-  try {
-    let deviceId = await AsyncStorage.getItem(DEVICE_ID_KEY);
-    if (!deviceId) {
-      deviceId = generateUUID();
-      await AsyncStorage.setItem(DEVICE_ID_KEY, deviceId);
+  // Android — androidId is tied to the app signing key + hardware, survives reinstall
+  if (Platform.OS === 'android') {
+    const androidId = Application.androidId;
+    if (androidId) return androidId;
+  }
+
+  // iOS — Keychain survives app deletion; migrate legacy AsyncStorage UUID if present
+  if (Platform.OS === 'ios') {
+    try {
+      let keychainId = await SecureStore.getItemAsync(KEYCHAIN_KEY);
+      if (!keychainId) {
+        // Migrate: carry over any UUID already registered on the backend
+        const legacyId = await AsyncStorage.getItem(ASYNC_KEY);
+        keychainId = legacyId || generateUUID();
+        await SecureStore.setItemAsync(KEYCHAIN_KEY, keychainId);
+      }
+      return keychainId;
+    } catch {
+      // SecureStore unavailable (simulator edge case) — fall through
     }
-    return deviceId;
+  }
+
+  // Fallback for web / dev environments
+  try {
+    let id = await AsyncStorage.getItem(ASYNC_KEY);
+    if (!id) {
+      id = generateUUID();
+      await AsyncStorage.setItem(ASYNC_KEY, id);
+    }
+    return id;
   } catch {
-    // If storage fails (unlikely), return a fresh UUID for this session
     return generateUUID();
   }
 }
