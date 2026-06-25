@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.mocktale.mocktaleacademy",
-      "versionCode": 17,
+      "versionCode": 18,
       "permissions": [],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
