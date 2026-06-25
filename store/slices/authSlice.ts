@@ -21,8 +21,9 @@ export interface AuthState {
   pendingVerification: {
     email: string | null;
     isOTPSent: boolean;
-    type: 'registration' | 'forgot-password' | 'login-verification' | null;
-    password?: string | null; // Store password for login verification
+    type: 'registration' | 'forgot-password' | 'login-verification' | 'device-verification' | null;
+    password?: string | null;
+    deviceChangeToken?: string | null;
   };
 }
 
@@ -64,7 +65,7 @@ const authSlice = createSlice({
     },
     setPendingVerification: (
       state,
-      action: PayloadAction<{ email: string; isOTPSent: boolean; type: 'registration' | 'forgot-password' | 'login-verification'; password?: string }>
+      action: PayloadAction<{ email: string; isOTPSent: boolean; type: 'registration' | 'forgot-password' | 'login-verification' | 'device-verification'; password?: string; deviceChangeToken?: string }>
     ) => {
       state.pendingVerification = action.payload;
     },

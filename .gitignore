@@ -31,5 +31,8 @@ yarn-error.*
 .env*.local
 .env
 
+# EAS local credentials — contains keystore passwords, never commit
+credentials.json
+
 # typescript
 *.tsbuildinfo

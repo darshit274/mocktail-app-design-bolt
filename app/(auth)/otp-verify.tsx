@@ -120,6 +120,9 @@ export default function OtpVerifyScreen() {
       await verifyOTP({
         email: pendingVerification.email!,
         otp: otp.trim(),
+        ...(pendingVerification.deviceChangeToken
+          ? { deviceChangeToken: pendingVerification.deviceChangeToken }
+          : {}),
       }).unwrap();
 
       // Store the type before clearing verification state
@@ -139,6 +142,10 @@ export default function OtpVerifyScreen() {
       if (verificationType === 'forgot-password') {
         // Don't clear verification for forgot password - update-password screen needs the email
         setTimeout(() => router.push('/(auth)/update-password'), 1000);
+      } else if (verificationType === 'device-verification') {
+        // Device re-enrollment: backend just updated device_id, so a fresh login
+        // with the current device_id will now succeed.
+        await autoLoginAfterVerify('login-verification');
       } else if (verificationType === 'login-verification' || verificationType === 'registration') {
         // Both flows finish the same way: auto-login so the user lands on the
         // dashboard with a proper session-bound token and locked device_id,

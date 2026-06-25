@@ -20,6 +20,7 @@ export interface LoginRequest {
 export interface OTPVerifyRequest {
   email: string;
   otp: string;
+  deviceChangeToken?: string;
 }
 
 export interface ForgotPasswordRequest {

@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.mocktale.mocktaleacademy",
-      "versionCode": 9,
+      "versionCode": 17,
       "permissions": [],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -52,7 +52,8 @@
             }
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

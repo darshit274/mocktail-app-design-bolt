@@ -57,13 +57,22 @@ export default function LoginScreen() {
     } catch (error: any) {
       const errorMessage = error?.data?.message || t.auth.loginFailed;
       
-      // Check if error is due to device lock
-      if (errorMessage.includes('linked to another device') || errorMessage.includes('contact admin')) {
+      // Device mismatch — backend sends OTP and a deviceChangeToken for re-enrollment
+      if (error?.data?.errorCode === 'DEVICE_VERIFICATION_REQUIRED' || errorMessage.includes('New device detected')) {
+        const deviceChangeToken = error?.data?.deviceChangeToken;
+        dispatch(setPendingVerification({
+          email: email.trim().toLowerCase(),
+          isOTPSent: true,
+          type: 'device-verification',
+          password,
+          deviceChangeToken,
+        }));
         Toast.show({
-          type: 'error',
-          text1: 'Device Restricted',
-          text2: 'This account is locked to another device. Contact admin to reset.',
+          type: 'info',
+          text1: 'Verify Your Device',
+          text2: 'An OTP has been sent to your email. Enter it to continue.',
         });
+        router.push('/(auth)/otp-verify');
         return;
       }
 
